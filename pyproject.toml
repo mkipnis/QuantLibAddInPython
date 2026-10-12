@@ -29,6 +29,10 @@ classifiers = [
 cmake.source-dir = "."
 wheel.packages = []
 build-dir = "build/{wheel_tag}"
+build.verbose = true
+
+[tool.scikit-build.cmake.define]
+CMAKE_VERBOSE_MAKEFILE = "ON"
 
 [tool.cibuildwheel]
 build = "cp313-*"
