@@ -1,0 +1,34 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.13",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "quantlib-addin"
+version = "0.1.0"
+description = "Python bindings for QuantLibAddin"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+authors = [
+    { name = "Mike Kipnis" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[tool.scikit-build]
+cmake.source-dir = "."
+wheel.packages = []
+build-dir = "build/{wheel_tag}"
+
+[tool.cibuildwheel]
+build = "cp313-*"
+test-command = "python -c \"import quantlib_addin; print(quantlib_addin.__file__)\""
