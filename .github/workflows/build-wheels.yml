@@ -109,20 +109,26 @@ jobs:
             BOOST_ROOT=%BOOST_ROOT%
             CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"
 
-          # Explicitly repair macOS wheels by bundling shared libraries.
+          # Diagnostic wrapper: print the delocate failure and preserve its exit code.
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
-            delocate-wheel --require-archs {delocate_archs}
-            -w {dest_dir} {wheel}
+            bash -c 'delocate-wheel --require-archs {delocate_archs}
+            -w {dest_dir} -v {wheel} 2>&1 || {
+            echo "=== delocate failed ===";
+            exit 1;
+            }'
 
           CIBW_TEST_COMMAND: >-
             python -c "import quantlib_addin; print(quantlib_addin.__file__)"
 
-      - name: Inspect built macOS wheel
+      - name: Inspect macOS native libraries
         if: runner.os == 'macOS' && always()
         shell: bash
         run: |
-          echo "Native libraries found in the workspace:"
+          echo "Native libraries in workspace:"
           find . \( -name '*.so' -o -name '*.dylib' \) -print || true
+
+          echo "Wheel files in workspace:"
+          find . -type f -name '*.whl' -print || true
 
       - name: List built wheels
         if: success()
@@ -137,7 +143,5 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
-          if-no-files-found: error
-          retention-days: 14
           if-no-files-found: error
           retention-days: 14
