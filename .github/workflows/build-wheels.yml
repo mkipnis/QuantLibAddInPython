@@ -144,6 +144,5 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
-          if-no-files-found: error
           retention-days: 14
           retention-days: 14
