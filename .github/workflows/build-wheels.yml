@@ -66,6 +66,7 @@ jobs:
           }
 
           $boostRoot = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows"
+
           if (-not (Test-Path "$boostRoot\include\boost")) {
             throw "Boost headers not found at $boostRoot\include"
           }
@@ -89,7 +90,7 @@ jobs:
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_DEBUG_TRACEBACK: "true"
 
-          # Linux: install Boost inside the manylinux container.
+          # Install Boost inside the Linux manylinux build container.
           CIBW_BEFORE_ALL_LINUX: >-
             (yum install -y boost-devel ||
              dnf install -y boost-devel ||
@@ -98,18 +99,30 @@ jobs:
             BOOST_ROOT=/usr
             CMAKE_ARGS="-DBoost_ROOT=/usr -DBoost_INCLUDE_DIR=/usr/include"
 
-          # macOS: Homebrew Boost is installed on the runner.
+          # Boost on macOS is provided by Homebrew.
           CIBW_ENVIRONMENT_MACOS: >-
             BOOST_ROOT=$BOOST_ROOT
             CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_INCLUDE_DIR=$BOOST_ROOT/include"
 
-          # Windows: Boost is installed with vcpkg.
+          # Boost on Windows is provided by vcpkg.
           CIBW_ENVIRONMENT_WINDOWS: >-
             BOOST_ROOT=%BOOST_ROOT%
             CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"
 
+          # Explicitly repair macOS wheels by bundling shared libraries.
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
+            delocate-wheel --require-archs {delocate_archs}
+            -w {dest_dir} {wheel}
+
           CIBW_TEST_COMMAND: >-
             python -c "import quantlib_addin; print(quantlib_addin.__file__)"
+
+      - name: Inspect built macOS wheel
+        if: runner.os == 'macOS' && always()
+        shell: bash
+        run: |
+          echo "Native libraries found in the workspace:"
+          find . \( -name '*.so' -o -name '*.dylib' \) -print || true
 
       - name: List built wheels
         if: success()
@@ -124,5 +137,7 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
+          if-no-files-found: error
+          retention-days: 14
           if-no-files-found: error
           retention-days: 14
