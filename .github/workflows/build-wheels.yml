@@ -1,0 +1,173 @@
+name: Build Python Wheels
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-wheels:
+    name: Build wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15-intel
+          - macos-15
+          - windows-2022
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade cibuildwheel build ninja
+
+      - name: Install Boost on Linux runner
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libboost-all-dev
+
+      - name: Install Boost on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install boost
+          BOOST_PREFIX="$(brew --prefix boost)"
+          echo "BOOST_ROOT=$BOOST_PREFIX" >> "$GITHUB_ENV"
+          echo "Boost prefix: $BOOST_PREFIX"
+          test -d "$BOOST_PREFIX/include/boost"
+
+      - name: Install Boost on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not $env:VCPKG_INSTALLATION_ROOT) {
+            throw "VCPKG_INSTALLATION_ROOT is not set."
+          }
+
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install boost:x64-windows
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install Boost with vcpkg."
+          }
+
+          $boostRoot = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows"
+
+          if (-not (Test-Path "$boostRoot\include\boost")) {
+            throw "Boost headers not found at $boostRoot\include"
+          }
+
+          "BOOST_ROOT=$boostRoot" | Out-File $env:GITHUB_ENV -Append
+
+      - name: Verify Windows Boost
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "BOOST_ROOT=$env:BOOST_ROOT"
+          Write-Host "VCPKG_INSTALLATION_ROOT=$env:VCPKG_INSTALLATION_ROOT"
+
+          if (-not (Test-Path "$env:BOOST_ROOT\include\boost")) {
+            throw "Boost headers not found under BOOST_ROOT"
+          }
+
+          Get-ChildItem "$env:BOOST_ROOT\include\boost" |
+            Select-Object -First 10
+
+      - name: Show build environment
+        shell: bash
+        run: |
+          python --version
+          python -m pip --version
+          python -m pip show cibuildwheel
+          git --version
+          cmake --version
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_SKIP: "*-win32 *-musllinux*"
+          CIBW_BUILD_VERBOSITY: "3"
+          CIBW_DEBUG_TRACEBACK: "true"
+
+          # Install Boost inside the Linux manylinux container.
+          CIBW_BEFORE_ALL_LINUX: >-
+            (yum install -y boost-devel ||
+             dnf install -y boost-devel ||
+             (apt-get update && apt-get install -y libboost-all-dev))
+
+          CIBW_ENVIRONMENT_LINUX: >-
+            BOOST_ROOT=/usr
+            CMAKE_ARGS="-DBoost_ROOT=/usr -DBoost_INCLUDE_DIR=/usr/include"
+
+          # Homebrew Boost currently requires macOS 15.
+          CIBW_ENVIRONMENT_MACOS: >-
+            MACOSX_DEPLOYMENT_TARGET=15.0
+            BOOST_ROOT=$BOOST_ROOT
+            CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_INCLUDE_DIR=$BOOST_ROOT/include"
+
+          # Boost on Windows is provided by vcpkg.
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            BOOST_ROOT=%BOOST_ROOT%
+            CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"
+
+          # Bundle dynamic libraries into macOS wheels.
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
+            bash -c 'delocate-wheel --require-archs {delocate_archs}
+            -w {dest_dir} -v {wheel} 2>&1 || {
+            echo "=== delocate failed ===";
+            exit 1;
+            }'
+
+          CIBW_TEST_COMMAND: >-
+            python -c "import quantlib_addin; print(quantlib_addin.__file__)"
+
+      - name: Inspect macOS native libraries
+        if: runner.os == 'macOS' && always()
+        shell: bash
+        run: |
+          echo "Native libraries in workspace:"
+          find . \( -name '*.so' -o -name '*.dylib' \) -print || true
+
+          echo "Wheel files in workspace:"
+          find . -type f -name '*.whl' -print || true
+
+      - name: List built wheels
+        if: success()
+        shell: bash
+        run: |
+          echo "Built wheel files:"
+          if [ -d wheelhouse ]; then
+            ls -lh wheelhouse
+          else
+            echo "wheelhouse directory does not exist"
+          fi
+
+      - name: Upload wheel artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
