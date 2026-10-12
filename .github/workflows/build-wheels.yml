@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,12 +37,37 @@ jobs:
           python-version: "3.13"
 
       - name: Install build tools
-        run: python -m pip install --upgrade pip cibuildwheel
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade cibuildwheel build ninja
+
+      - name: Show build environment
+        run: |
+          python --version
+          python -m pip --version
+          python -m pip show cibuildwheel
+          git --version
+          cmake --version
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_SKIP: "*-win32 *-musllinux*"
+          CIBW_BUILD_VERBOSITY: "3"
+          CIBW_DEBUG_TRACEBACK: "true"
+          CIBW_TEST_COMMAND: >-
+            python -c "import quantlib_addin; print(quantlib_addin.__file__)"
+
+      - name: List built wheels
+        if: success()
+        shell: bash
+        run: |
+          echo "Built wheel files:"
+          ls -lh wheelhouse
 
       - name: Upload wheel artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
