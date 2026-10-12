@@ -99,7 +99,7 @@ jobs:
             BOOST_ROOT=/usr
             CMAKE_ARGS="-DBoost_ROOT=/usr -DBoost_INCLUDE_DIR=/usr/include"
 
-          # Homebrew Boost on macOS currently requires macOS 15.
+          # Homebrew Boost currently requires macOS 15.
           CIBW_ENVIRONMENT_MACOS: >-
             MACOSX_DEPLOYMENT_TARGET=15.0
             BOOST_ROOT=$BOOST_ROOT
@@ -110,7 +110,7 @@ jobs:
             BOOST_ROOT=%BOOST_ROOT%
             CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"
 
-          # Repair macOS wheels and bundle required dynamic libraries.
+          # Bundle required dynamic libraries into macOS wheels.
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
             bash -c 'delocate-wheel --require-archs {delocate_archs}
             -w {dest_dir} -v {wheel} 2>&1 || {
@@ -146,5 +146,4 @@ jobs:
           path: wheelhouse/*.whl
           if-no-files-found: error
           retention-days: 14
-          if-no-files-found: error
           retention-days: 14
