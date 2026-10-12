@@ -2,9 +2,14 @@ name: Build Python Wheels
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches:
+      - main
+      - init
+    tags:
+      - "v*"
+
   pull_request:
+
   workflow_dispatch:
 
 permissions:
@@ -18,30 +23,72 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-24.04
-          - macos-15-intel
-          - macos-15
-          - windows-2022
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+          - os: macos-15-intel
+            platform: macos
+          - os: macos-15
+            platform: macos
+          - os: windows-2022
+            platform: windows
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Install build tools
-        run: python -m pip install --upgrade pip cibuildwheel
+      - name: Show build environment
+        run: |
+          python --version
+          python -m pip --version
+          cmake --version
+          git --version
+
+      - name: Install Python build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build cibuildwheel
+
+      - name: Show C++ compiler
+        if: runner.os != 'Windows'
+        run: |
+          c++ --version
+
+      - name: Show MSVC compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Command cl.exe -ErrorAction SilentlyContinue
+          cmake --version
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_SKIP: "*-win32 *-musllinux*"
+          CIBW_BUILD_VERBOSITY: "1"
+          CIBW_DEBUG_TRACEBACK: "true"
+
+          CIBW_TEST_COMMAND: >-
+            python -c "import quantlib_addin; print(quantlib_addin.__file__)"
+
+      - name: List built wheels
+        if: success()
+        shell: bash
+        run: |
+          echo "Built wheel files:"
+          ls -lh wheelhouse
 
       - name: Upload wheel artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
