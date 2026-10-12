@@ -43,42 +43,34 @@ jobs:
 
       - name: Install Boost on macOS
         if: runner.os == 'macOS'
+        shell: bash
         run: |
           brew install boost
-          echo "BOOST_ROOT=$(brew --prefix boost)" >> "$GITHUB_ENV"
-          echo "Boost installed at: $(brew --prefix boost)"
-          ls "$(brew --prefix boost)/include/boost"
-
-      - name: Install Boost on Linux
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libboost-all-dev
+          BOOST_PREFIX="$(brew --prefix boost)"
+          echo "BOOST_ROOT=$BOOST_PREFIX" >> "$GITHUB_ENV"
+          echo "Boost prefix: $BOOST_PREFIX"
+          test -d "$BOOST_PREFIX/include/boost"
 
       - name: Install Boost on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           if (-not $env:VCPKG_INSTALLATION_ROOT) {
-            throw "VCPKG_INSTALLATION_ROOT is not set on this runner."
+            throw "VCPKG_INSTALLATION_ROOT is not set."
           }
 
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install boost:x64-windows
 
           if ($LASTEXITCODE -ne 0) {
-            throw "vcpkg failed to install Boost."
+            throw "Failed to install Boost with vcpkg."
           }
 
-          $boostInclude = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\include"
-
-          if (-not (Test-Path "$boostInclude\boost")) {
-            throw "Boost headers not found at $boostInclude"
+          $boostRoot = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows"
+          if (-not (Test-Path "$boostRoot\include\boost")) {
+            throw "Boost headers not found at $boostRoot\include"
           }
 
-          "BOOST_ROOT=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows" |
-            Out-File -FilePath $env:GITHUB_ENV -Append
-
-          "Boost installed at: $boostInclude"
+          "BOOST_ROOT=$boostRoot" | Out-File $env:GITHUB_ENV -Append
 
       - name: Show build environment
         shell: bash
@@ -97,10 +89,24 @@ jobs:
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_DEBUG_TRACEBACK: "true"
 
-          # Pass Boost locations to CMake inside the wheel build.
-          CIBW_ENVIRONMENT_MACOS: 'CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_INCLUDE_DIR=$BOOST_ROOT/include"'
-          CIBW_ENVIRONMENT_LINUX: 'CMAKE_ARGS="-DBoost_ROOT=/usr -DBoost_INCLUDE_DIR=/usr/include"'
-          CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"'
+          # Linux: install Boost inside the manylinux container.
+          CIBW_BEFORE_ALL_LINUX: >-
+            (yum install -y boost-devel ||
+             dnf install -y boost-devel ||
+             (apt-get update && apt-get install -y libboost-all-dev))
+          CIBW_ENVIRONMENT_LINUX: >-
+            BOOST_ROOT=/usr
+            CMAKE_ARGS="-DBoost_ROOT=/usr -DBoost_INCLUDE_DIR=/usr/include"
+
+          # macOS: Homebrew Boost is installed on the runner.
+          CIBW_ENVIRONMENT_MACOS: >-
+            BOOST_ROOT=$BOOST_ROOT
+            CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_INCLUDE_DIR=$BOOST_ROOT/include"
+
+          # Windows: Boost is installed with vcpkg.
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            BOOST_ROOT=%BOOST_ROOT%
+            CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"
 
           CIBW_TEST_COMMAND: >-
             python -c "import quantlib_addin; print(quantlib_addin.__file__)"
