@@ -63,7 +63,7 @@ find_package(pybind11 CONFIG REQUIRED)
 FetchContent_Declare(
     quantlibaddin_repo
     GIT_REPOSITORY https://github.com/mkipnis/QuantLibAddIn.git
-    GIT_TAG excel
+    GIT_TAG master 
     GIT_SHALLOW TRUE
 )
 
