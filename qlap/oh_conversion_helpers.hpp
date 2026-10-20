@@ -1,6 +1,10 @@
-# Copyright (c) Mike Kipnis
+#pragma once
 
-CONVERSION_HELPERS = r"""
+namespace py = pybind11;
+
+namespace QuantLibAddinPython
+{
+
 template <typename T>
 ObjectHandler::property_t property_from(const py::object& value)
 {
@@ -21,4 +25,4 @@ ObjectHandler::property_t property_from_date(const py::object& value)
     );
 }
 
-"""
+}

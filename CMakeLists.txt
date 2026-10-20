@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.20)
 
 project(QuantLibAddinPython LANGUAGES CXX)
@@ -29,6 +30,8 @@ find_package(
     COMPONENTS Interpreter Development.Module
 )
 
+find_package(Boost 1.92.0 REQUIRED COMPONENTS json)
+
 # -----------------------------------------------------------------------
 # pybind11
 # -----------------------------------------------------------------------
@@ -51,23 +54,15 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # -----------------------------------------------------------------------
 # Fetch QuantLibAddIn and its dependencies
-#
-# The repository root builds:
-#   - QuantLib
-#   - ObjectHandler
-#   - QuantLibObjects
-#   - AddinCpp
-#
 # -----------------------------------------------------------------------
 
 FetchContent_Declare(
     quantlibaddin_repo
     GIT_REPOSITORY https://github.com/mkipnis/QuantLibAddIn.git
-    GIT_TAG master 
+    GIT_TAG master
     GIT_SHALLOW TRUE
 )
 
-# Generate the missing QuantLibAddin and AddinCpp sources.
 set(RUN_GENSRC ON CACHE BOOL
     "Generate QuantLibAddin source files" FORCE)
 
@@ -102,6 +97,19 @@ if(NOT TARGET ohlib)
 endif()
 
 # -----------------------------------------------------------------------
+# Helper implementation files
+# -----------------------------------------------------------------------
+
+file(GLOB QLAP_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/qlap/*.cpp"
+)
+
+file(GLOB QLAP_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/qlap/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qlap/*.hpp"
+)
+
+# -----------------------------------------------------------------------
 # Python extension module
 # -----------------------------------------------------------------------
 
@@ -109,6 +117,8 @@ pybind11_add_module(
     quantlib_addin
     MODULE
     bindings/QuantLibAddinCpp.cpp
+    ${QLAP_SOURCES}
+    ${QLAP_HEADERS}
 )
 
 target_compile_features(
@@ -124,6 +134,8 @@ target_compile_features(
 target_include_directories(
     quantlib_addin
     PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/qlap"
+    "${CMAKE_CURRENT_SOURCE_DIR}/bindings"
     "${quantlibaddin_repo_SOURCE_DIR}/QuantLibAddin/Addins/Cpp"
     "${quantlibaddin_repo_SOURCE_DIR}/QuantLibAddin"
     "${quantlibaddin_repo_SOURCE_DIR}/ObjectHandler"
@@ -140,6 +152,7 @@ target_link_libraries(
     QuantLibObjects
     ohlib
     QuantLib::QuantLib
+    Boost::json
 )
 
 # -----------------------------------------------------------------------
@@ -161,4 +174,5 @@ install(
     LIBRARY DESTINATION .
     RUNTIME DESTINATION .
 )
+
 

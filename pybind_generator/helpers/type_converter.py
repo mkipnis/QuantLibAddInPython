@@ -23,6 +23,9 @@ def convert_type(param_name, type_name, ql_addin_type):
             "QuantLib::Size": "long",
             "QuantLib::Quote": "double",
             "QuantLib::Real": "double",
+            "QuantLib::Natural": "long",
+            "QuantLib::Rate" : "double",
+            "QuantLib::Spread" : "double",
         }
 
         quantlib_type = type_mapping.get(quantlib_type, quantlib_type)
@@ -33,7 +36,7 @@ def convert_type(param_name, type_name, ql_addin_type):
             quantlib_type = "string"
 
         if quantlib_type == "date":
-            call_param = f"property_from_date({param_name})"
+            call_param = f"qlap::property_from_date({param_name})"
         else:
             cpp_type_mapping = {
                 "string": "std::string",
@@ -43,7 +46,7 @@ def convert_type(param_name, type_name, ql_addin_type):
                 "double": "double",
             }
             cpp_type = cpp_type_mapping[quantlib_type]
-            call_param = f"property_from<{cpp_type}>({param_name})"
+            call_param = f"qlap::property_from<{cpp_type}>({param_name})"
 
         param_details = {
             "lambda_param": f"py::object {param_name}",
