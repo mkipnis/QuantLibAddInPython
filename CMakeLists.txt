@@ -36,11 +36,11 @@ find_package(
 if(WIN32)
     set(Boost_USE_STATIC_LIBS ON)
     set(Boost_USE_STATIC_RUNTIME OFF)
-elseif(UNIX AND NOT APPLE)
+else()
     set(Boost_USE_STATIC_LIBS OFF)
 endif()
 
-find_package(Boost 1.80.0 REQUIRED COMPONENTS json)
+find_package(Boost 1.88 CONFIG REQUIRED COMPONENTS json)
 
 # -----------------------------------------------------------------------
 # pybind11
