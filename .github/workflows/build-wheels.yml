@@ -37,18 +37,22 @@ jobs:
           python-version: "3.13"
 
       - name: Install build tools
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade cibuildwheel build ninja
 
-      - name: Install Boost on macOS
+      - name: Install macOS tools and Boost
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          python -m pip install --upgrade delocate
           brew install boost
+
           BOOST_PREFIX="$(brew --prefix boost)"
           echo "BOOST_ROOT=$BOOST_PREFIX" >> "$GITHUB_ENV"
           echo "Boost prefix: $BOOST_PREFIX"
+
           test -d "$BOOST_PREFIX/include/boost"
 
       - name: Install Boost on Windows
@@ -59,19 +63,22 @@ jobs:
             throw "VCPKG_INSTALLATION_ROOT is not set."
           }
 
-          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install boost:x64-windows
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install boost:x64-windows-static-md
 
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to install Boost with vcpkg."
           }
 
-          $boostRoot = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows"
+          $boostRoot = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-md"
 
           if (-not (Test-Path "$boostRoot\include\boost")) {
             throw "Boost headers not found at $boostRoot\include"
           }
 
           "BOOST_ROOT=$boostRoot" | Out-File $env:GITHUB_ENV -Append
+
+          Write-Host "Boost root: $boostRoot"
+          Get-ChildItem "$boostRoot\share\boost" -ErrorAction SilentlyContinue
 
       - name: Show build environment
         shell: bash
@@ -90,33 +97,56 @@ jobs:
           CIBW_BUILD_VERBOSITY: "3"
           CIBW_DEBUG_TRACEBACK: "true"
 
-          # Install Boost inside the Linux manylinux build container.
+          # Build Boost 1.88.0 from source inside the manylinux container.
           CIBW_BEFORE_ALL_LINUX: >-
-            (yum install -y boost-devel ||
-             dnf install -y boost-devel ||
-             (apt-get update && apt-get install -y libboost-all-dev))
-          CIBW_ENVIRONMENT_LINUX: >-
-            BOOST_ROOT=/usr
-            CMAKE_ARGS="-DBoost_ROOT=/usr -DBoost_INCLUDE_DIR=/usr/include"
+            set -eux;
+            (yum install -y curl tar ||
+             dnf install -y curl tar);
+            curl -L --fail
+            https://archives.boost.io/release/1.88.0/source/boost_1_88_0.tar.gz
+            -o /tmp/boost.tar.gz;
+            tar -xzf /tmp/boost.tar.gz -C /tmp;
+            cd /tmp/boost_1_88_0;
+            ./bootstrap.sh --prefix=/usr/local;
+            ./b2 -j2
+            --with-json
+            --with-serialization
+            --with-filesystem
+            --with-system
+            --with-date_time
+            --with-chrono
+            --with-atomic
+            --with-container
+            variant=release
+            link=shared
+            runtime-link=shared
+            threading=multi
+            --prefix=/usr/local
+            --libdir=/usr/local/lib
+            install;
+            ldconfig
 
-          # Homebrew Boost currently requires macOS 15.
+          CIBW_ENVIRONMENT_LINUX: >-
+            BOOST_ROOT=/usr/local
+            CMAKE_ARGS="-DBoost_ROOT=/usr/local -DBoost_INCLUDE_DIR=/usr/local/include -DBoost_USE_STATIC_LIBS=OFF"
+
+          # Homebrew Boost on macOS.
           CIBW_ENVIRONMENT_MACOS: >-
             MACOSX_DEPLOYMENT_TARGET=15.0
             BOOST_ROOT=$BOOST_ROOT
-            CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_INCLUDE_DIR=$BOOST_ROOT/include"
+            CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_INCLUDE_DIR=$BOOST_ROOT/include -DBoost_USE_STATIC_LIBS=OFF"
 
-          # Boost on Windows is provided by vcpkg.
+          # Static Boost libraries with the dynamic MSVC runtime.
           CIBW_ENVIRONMENT_WINDOWS: >-
             BOOST_ROOT=%BOOST_ROOT%
-            CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_INCLUDE_DIR=%BOOST_ROOT%/include"
+            CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_USE_STATIC_LIBS=ON -DBoost_USE_STATIC_RUNTIME=OFF"
 
-          # Bundle required dynamic libraries into macOS wheels.
+          # Bundle non-system shared libraries into macOS wheels.
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
-            bash -c 'delocate-wheel --require-archs {delocate_archs}
-            -w {dest_dir} -v {wheel} 2>&1 || {
-            echo "=== delocate failed ===";
-            exit 1;
-            }'
+            delocate-wheel --require-archs {delocate_archs}
+            -w {dest_dir} -v {wheel}
+
+          # Linux uses cibuildwheel's default auditwheel repair command.
 
           CIBW_TEST_COMMAND: >-
             python -c "import quantlib_addin; print(quantlib_addin.__file__)"
@@ -145,5 +175,3 @@ jobs:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
           retention-days: 14
-
-
