@@ -19,7 +19,7 @@ def write_pybind_file(headers, module, bindings, output):
     ]
 
     for header in headers:
-        lines.append(f'#include <{Path(header).name}>')
+        lines.append(f'#include <qlo/{Path(header).name}>')
 
     lines.append('#include <qlap.hpp>')
 
