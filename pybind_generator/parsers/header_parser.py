@@ -4,8 +4,8 @@ import tree_sitter_cpp as tscpp
 from tree_sitter import Language, Parser
 import json
 
-from helpers.type_converter import is_property_type, convert_type
-from parsers.parse_addin_functions import print_function
+from pybind_generator.helpers.type_converter import convert_type
+from pybind_generator.parsers.parse_addin_functions import print_function
 
 CPP_LANGUAGE = Language(tscpp.language())
 

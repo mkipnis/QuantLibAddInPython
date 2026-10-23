@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from helpers.conversion_helpers import CONVERSION_HELPERS
+#from pybind_generator.helpers.conversion_helpers import CONVERSION_HELPERS
 
 def write_pybind_file(headers, module, bindings, output):
 
@@ -14,18 +14,37 @@ def write_pybind_file(headers, module, bindings, output):
         "#include <string>",
         "#include <vector>",
         "#include <ql/time/date.hpp>",
+        "#include <oh/repository.hpp>",
+        "#include <addincpp.hpp>",
+        "//#include <qlo/qladdin.hpp>"
     ]
 
     for header in headers:
         lines.append(f'#include <{Path(header).name}>')
 
+    lines.append('#include <qlap.hpp>')
+
+    qlAddinCalculate = r'''  m.def( 
+        "qlAddinCalculate", 
+        []( const std::string & ObjectId, const py::dict& input) -> py::dict {
+            const json::value json_input = qlap::to_boost_json(input);
+            const json::value json_output = qlap::qlAddinCalculate(ObjectId, json_input);
+
+            return qlap::to_python_dict(json_output);
+        },
+        py::arg("ObjectId"),
+        py::arg("input"),
+        "Calculate using a Python dictionary and return a dictionary."
+    );'''
+
     lines.extend([
         "",
         "namespace py = pybind11;",
-        CONVERSION_HELPERS,
+        "namespace qlap = QuantLibAddinPython;",
         "",
         f"PYBIND11_MODULE({module}, m)",
         "{",
+        qlAddinCalculate,
         '    py::class_<ObjectHandler::property_t>(m, "Property").def(py::init<>());',
         "",
     ])

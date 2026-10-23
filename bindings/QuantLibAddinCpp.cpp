@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 #include <ql/time/date.hpp>
+#include <oh/repository.hpp>
+#include <addincpp.hpp>
+//#include <qlo/qladdin.hpp>
 #include <abcd.hpp>
 #include <accountingengines.hpp>
 #include <addincpp.hpp>
@@ -70,33 +73,25 @@
 #include <vanillaswap.hpp>
 #include <volatilities.hpp>
 #include <volatility.hpp>
+#include <qlap.hpp>
 
 namespace py = pybind11;
-
-template <typename T>
-ObjectHandler::property_t property_from(const py::object& value)
-{
-    return ObjectHandler::property_t(value.cast<T>());
-}
-
-ObjectHandler::property_t property_from_date(const py::object& value)
-{
-    if (value.is_none())
-        return {};
-
-    const QuantLib::Date date = py::isinstance<py::int_>(value)
-        ? QuantLib::Date(value.cast<QuantLib::Date::serial_type>())
-        : value.cast<QuantLib::Date>();
-
-    return ObjectHandler::property_t(
-        static_cast<long>(date.serialNumber())
-    );
-}
-
-
+namespace qlap = QuantLibAddinPython;
 
 PYBIND11_MODULE(quantlib_addin, m)
 {
+  m.def( 
+        "qlAddinCalculate", 
+        []( const std::string & ObjectId, const py::dict& input) -> py::dict {
+            const json::value json_input = qlap::to_boost_json(input);
+            const json::value json_output = qlap::qlAddinCalculate(ObjectId, json_input);
+
+            return qlap::to_python_dict(json_output);
+        },
+        py::arg("ObjectId"),
+        py::arg("input"),
+        "Calculate using a Python dictionary and return a dictionary."
+    );
     py::class_<ObjectHandler::property_t>(m, "Property").def(py::init<>());
 
 m.def("qlAbcdCalibration",
@@ -125,19 +120,19 @@ m.def("qlAbcdCalibration",
             ObjectId,
             Times,
             BlackVols,
-            property_from<double>(A),
-            property_from<double>(B),
-            property_from<double>(C),
-            property_from<double>(D),
-            property_from<bool>(AIsFixed),
-            property_from<bool>(BIsFixed),
-            property_from<bool>(CIsFixed),
-            property_from<bool>(DIsFixed),
-            property_from<bool>(VegaWeighted),
-            property_from<std::string>(EndCriteria),
-            property_from<std::string>(Method),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(A),
+            qlap::property_from<double>(B),
+            qlap::property_from<double>(C),
+            qlap::property_from<double>(D),
+            qlap::property_from<bool>(AIsFixed),
+            qlap::property_from<bool>(BIsFixed),
+            qlap::property_from<bool>(CIsFixed),
+            qlap::property_from<bool>(DIsFixed),
+            qlap::property_from<bool>(VegaWeighted),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<std::string>(Method),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -176,12 +171,12 @@ m.def("qlAbcdFunction",
     {
         return QuantLibAddinCpp::qlAbcdFunction(
             ObjectId,
-            property_from<double>(A),
-            property_from<double>(B),
-            property_from<double>(C),
-            property_from<double>(D),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(A),
+            qlap::property_from<double>(B),
+            qlap::property_from<double>(C),
+            qlap::property_from<double>(D),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -213,8 +208,8 @@ m.def("qlAccountingEngine",
             MarketModelEvolver,
             Product,
             InitialNumeraireValue,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -243,8 +238,8 @@ m.def("qlAlphaFormInverseLinear",
             ObjectId,
             RateTimes,
             Alpha,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -272,8 +267,8 @@ m.def("qlAlphaFormLinearHyperbolic",
             ObjectId,
             RateTimes,
             Alpha,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -305,16 +300,16 @@ m.def("qlAssetSwap",
     {
         return QuantLibAddinCpp::qlAssetSwap(
             ObjectId,
-            property_from<bool>(PayBondCoupon),
+            qlap::property_from<bool>(PayBondCoupon),
             Bond,
             CleanPrice,
             IborIndex,
-            property_from<std::string>(Spread),
-            property_from<std::string>(FloatingLegSchedule),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<std::string>(FloatingLegSchedule),
             FloatingLegDayCounter,
-            property_from<bool>(ParAssetSwap),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(ParAssetSwap),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -354,18 +349,18 @@ m.def("qlAssetSwap2",
     {
         return QuantLibAddinCpp::qlAssetSwap2(
             ObjectId,
-            property_from<bool>(ParAssetSwap),
+            qlap::property_from<bool>(ParAssetSwap),
             Bond,
             CleanPrice,
             NonParRepayment,
-            property_from<double>(Gearing),
+            qlap::property_from<double>(Gearing),
             IborIndex,
-            property_from<std::string>(Spread),
-            property_from<std::string>(FloatingLegDayCounter),
-            property_from_date(DealMaturity),
-            property_from<bool>(PayBondCoupon),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<std::string>(FloatingLegDayCounter),
+            qlap::property_from_date(DealMaturity),
+            qlap::property_from<bool>(PayBondCoupon),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -405,8 +400,8 @@ m.def("qlBaseCorrelationLossModel",
             BaseCorrelationSurface,
             Recoveries,
             InitiTraits,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -438,8 +433,8 @@ m.def("qlGMCLossModel",
             Factors,
             RecoveryRates,
             NumSimulations,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -472,8 +467,8 @@ m.def("qlGRandomRRMCLossModel",
             RecoveryRates,
             ModelA,
             NumSimulations,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -507,8 +502,8 @@ m.def("qlTMCLossModel",
             RecoveryRates,
             Ttraits,
             NumSimulations,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -544,8 +539,8 @@ m.def("qlTRandomRRMCLossModel",
             Ttraits,
             ModelA,
             NumSimulations,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -580,16 +575,16 @@ m.def("qlBond",
     {
         return QuantLibAddinCpp::qlBond(
             ObjectId,
-            property_from<std::string>(Description),
-            property_from<std::string>(Currency),
-            property_from<long>(SettlementDays),
-            property_from<std::string>(Calendar),
-            property_from<double>(FaceAmount),
-            property_from_date(MaturityDate),
-            property_from_date(IssueDate),
+            qlap::property_from<std::string>(Description),
+            qlap::property_from<std::string>(Currency),
+            qlap::property_from<long>(SettlementDays),
+            qlap::property_from<std::string>(Calendar),
+            qlap::property_from<double>(FaceAmount),
+            qlap::property_from_date(MaturityDate),
+            qlap::property_from_date(IssueDate),
             LegID,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -635,24 +630,24 @@ m.def("qlCmsRateBond",
     {
         return QuantLibAddinCpp::qlCmsRateBond(
             ObjectId,
-            property_from<std::string>(Description),
+            qlap::property_from<std::string>(Description),
             Currency,
             SettlementDays,
-            property_from<std::string>(PaymentBDC),
-            property_from<double>(FaceAmount),
+            qlap::property_from<std::string>(PaymentBDC),
+            qlap::property_from<double>(FaceAmount),
             ScheduleID,
-            property_from<std::string>(FixingDays),
-            property_from<bool>(IsInArrears),
+            qlap::property_from<long>(FixingDays),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Floors,
             Gearings,
             SwapIndex,
             Spreads,
             Caps,
-            property_from<double>(Redemption),
-            property_from_date(IssueDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Redemption),
+            qlap::property_from_date(IssueDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -701,19 +696,19 @@ m.def("qlFixedRateBond",
     {
         return QuantLibAddinCpp::qlFixedRateBond(
             ObjectId,
-            property_from<std::string>(Description),
+            qlap::property_from<std::string>(Description),
             Currency,
             SettlementDays,
-            property_from<double>(FaceAmount),
+            qlap::property_from<double>(FaceAmount),
             ScheduleID,
             Coupons,
             DayCounter,
-            property_from<std::string>(PaymentBDC),
-            property_from<double>(Redemption),
-            property_from_date(IssueDate),
+            qlap::property_from<std::string>(PaymentBDC),
+            qlap::property_from<double>(Redemption),
+            qlap::property_from_date(IssueDate),
             PaymentCalendar,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -762,24 +757,24 @@ m.def("qlFloatingRateBond",
     {
         return QuantLibAddinCpp::qlFloatingRateBond(
             ObjectId,
-            property_from<std::string>(Description),
+            qlap::property_from<std::string>(Description),
             Currency,
             SettlementDays,
-            property_from<std::string>(PaymentBDC),
-            property_from<double>(FaceAmount),
+            qlap::property_from<std::string>(PaymentBDC),
+            qlap::property_from<double>(FaceAmount),
             ScheduleID,
-            property_from<std::string>(FixingDays),
-            property_from<bool>(IsInArrears),
+            qlap::property_from<long>(FixingDays),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Floors,
             Gearings,
             IborIndex,
             Spreads,
             Caps,
-            property_from<double>(Redemption),
-            property_from_date(IssueDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Redemption),
+            qlap::property_from_date(IssueDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -826,17 +821,17 @@ m.def("qlZeroCouponBond",
     {
         return QuantLibAddinCpp::qlZeroCouponBond(
             ObjectId,
-            property_from<std::string>(Description),
+            qlap::property_from<std::string>(Description),
             Currency,
             SettlementDays,
             Calendar,
-            property_from<double>(FaceAmount),
-            property_from_date(Maturity),
-            property_from<std::string>(PaymentBDC),
-            property_from<double>(Redemption),
-            property_from_date(IssueDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(FaceAmount),
+            qlap::property_from_date(Maturity),
+            qlap::property_from<std::string>(PaymentBDC),
+            qlap::property_from<double>(Redemption),
+            qlap::property_from_date(IssueDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -868,9 +863,9 @@ m.def("qlMTBrownianGeneratorFactory",
     {
         return QuantLibAddinCpp::qlMTBrownianGeneratorFactory(
             ObjectId,
-            property_from<long>(Seed),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(Seed),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -898,13 +893,13 @@ m.def("qlBTP",
     {
         return QuantLibAddinCpp::qlBTP(
             ObjectId,
-            property_from<std::string>(Description),
-            property_from_date(MaturityDate),
+            qlap::property_from<std::string>(Description),
+            qlap::property_from_date(MaturityDate),
             Coupon,
-            property_from_date(StartDate),
-            property_from_date(IssueDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(IssueDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -937,14 +932,14 @@ m.def("qlBTP2",
     {
         return QuantLibAddinCpp::qlBTP2(
             ObjectId,
-            property_from<std::string>(Description),
-            property_from_date(MaturityDate),
+            qlap::property_from<std::string>(Description),
+            qlap::property_from_date(MaturityDate),
             Coupon,
-            property_from<double>(Redemption),
-            property_from_date(StartDate),
-            property_from_date(IssueDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Redemption),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(IssueDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -978,14 +973,14 @@ m.def("qlCCTEU",
     {
         return QuantLibAddinCpp::qlCCTEU(
             ObjectId,
-            property_from<std::string>(Description),
-            property_from_date(MaturityDate),
+            qlap::property_from<std::string>(Description),
+            qlap::property_from_date(MaturityDate),
             Spread,
             FwdCurve,
-            property_from_date(StartDate),
-            property_from_date(IssueDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(IssueDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1019,8 +1014,8 @@ m.def("qlRendistatoBasket",
             BTPs,
             Outstandings,
             Prices,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1051,8 +1046,8 @@ m.def("qlRendistatoCalculator",
             RendistatoBasket,
             Euribor,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1079,8 +1074,8 @@ m.def("qlRendistatoEquivalentSwapLengthQuote",
         return QuantLibAddinCpp::qlRendistatoEquivalentSwapLengthQuote(
             ObjectId,
             RendistatoCalculator,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1105,8 +1100,8 @@ m.def("qlRendistatoEquivalentSwapSpreadQuote",
         return QuantLibAddinCpp::qlRendistatoEquivalentSwapSpreadQuote(
             ObjectId,
             RendistatoCalculator,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1139,14 +1134,14 @@ m.def("qlSwaptionHelper",
             ObjectId,
             OptionTenor,
             Length,
-            property_from<double>(Volatility),
+            qlap::property_from<double>(Volatility),
             IborIndex,
             FixedLegTenor,
             FixedLegDayCounter,
             FloatingLegDayCounter,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1182,8 +1177,8 @@ m.def("qlCapFloor",
             OptionType,
             LegID,
             Strikes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1217,11 +1212,11 @@ m.def("qlMakeCapFloor",
             OptionType,
             Length,
             IborIndex,
-            property_from<std::string>(Strike),
+            qlap::property_from<double>(Strike),
             ForwardStart,
             PricingEngineID,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1260,9 +1255,9 @@ m.def("qlCapFloorTermVolCurve",
             BusinessDayConvention,
             OptionTenors,
             Volatilities,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1303,9 +1298,9 @@ m.def("qlCapFloorTermVolSurface",
             OptionTenors,
             Strikes,
             Volatilities,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1341,15 +1336,15 @@ m.def("qlConstantOptionletVolatility",
     {
         return QuantLibAddinCpp::qlConstantOptionletVolatility(
             ObjectId,
-            property_from<long>(NDays),
+            qlap::property_from<long>(NDays),
             Calendar,
             BusinessDayConvention,
-            property_from<double>(Volatility),
-            property_from<std::string>(DayCounter),
-            property_from<std::string>(VolatilityType),
-            property_from<double>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Volatility),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(VolatilityType),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1379,9 +1374,9 @@ m.def("qlRelinkableHandleOptionletVolatilityStructure",
     {
         return QuantLibAddinCpp::qlRelinkableHandleOptionletVolatilityStructure(
             ObjectId,
-            property_from<std::string>(CurrentLink),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CurrentLink),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1407,9 +1402,9 @@ m.def("qlSpreadedOptionletVolatility",
         return QuantLibAddinCpp::qlSpreadedOptionletVolatility(
             ObjectId,
             BaseVolStructure,
-            property_from<double>(Spread),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1443,18 +1438,18 @@ m.def("qlStrippedOptionlet",
     {
         return QuantLibAddinCpp::qlStrippedOptionlet(
             ObjectId,
-            property_from<long>(SettlementDays),
+            qlap::property_from<long>(SettlementDays),
             Calendar,
             BusinessDayConvention,
             IborIndex,
             OptionletDates,
             Strikes,
             Volatilities,
-            property_from<std::string>(DayCounter),
-            property_from<std::string>(VolatilityType),
-            property_from<double>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(VolatilityType),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1488,8 +1483,8 @@ m.def("qlStrippedOptionletAdapter",
         return QuantLibAddinCpp::qlStrippedOptionletAdapter(
             ObjectId,
             StrippedOptionletBase,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1510,7 +1505,7 @@ m.def("qlStrippedOptionletBaseSettlementDays",
     {
         return QuantLibAddinCpp::qlStrippedOptionletBaseSettlementDays(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -1541,8 +1536,8 @@ m.def("qlCmsMarket",
             BidAskSpreads,
             CmsCouponPricers,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1575,9 +1570,9 @@ m.def("qlCotSwapFromFwdCorrelation",
             ObjectId,
             FwdCorr,
             CurveState,
-            property_from<std::string>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1612,8 +1607,8 @@ m.def("qlExponentialForwardCorrelation",
             Beta,
             Gamma,
             Times,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1654,20 +1649,20 @@ m.def("qlHistoricalForwardRatesAnalysis",
         return QuantLibAddinCpp::qlHistoricalForwardRatesAnalysis(
             ObjectId,
             SequenceStats,
-            property_from_date(StartDate),
-            property_from_date(EndDate),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(EndDate),
             Step,
             IborIndex,
             InitialGap,
             Horizon,
             IborIndexes,
             SwapIndexes,
-            property_from<std::string>(DayCounter),
-            property_from<std::string>(TraitsID),
-            property_from<std::string>(InterpolatorID),
-            property_from<double>(BootstrapAccuracy),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(TraitsID),
+            qlap::property_from<std::string>(InterpolatorID),
+            qlap::property_from<double>(BootstrapAccuracy),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1708,12 +1703,12 @@ m.def("qlHistoricalRatesAnalysis",
         return QuantLibAddinCpp::qlHistoricalRatesAnalysis(
             ObjectId,
             SequenceStats,
-            property_from_date(StartDate),
-            property_from_date(EndDate),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(EndDate),
             Step,
             InterestRateIndexes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1747,9 +1742,9 @@ m.def("qlMarketModelLmLinearExponentialCorrelationModel",
             Size,
             Rho,
             Beta,
-            property_from<long>(Factors),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(Factors),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1782,9 +1777,9 @@ m.def("qlCmsCouponPricer",
             Volatility,
             CmsCouponPricerType,
             YieldCurveModel,
-            property_from<double>(MeanReversion),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(MeanReversion),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1821,19 +1816,19 @@ m.def("qlCmsLeg",
     {
         return QuantLibAddinCpp::qlCmsLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             FixingDays,
-            property_from<bool>(IsInArrears),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Floors,
             Gearings,
             SwapIndex,
             Spreads,
             Caps,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1877,19 +1872,19 @@ m.def("qlCmsZeroLeg",
     {
         return QuantLibAddinCpp::qlCmsZeroLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             FixingDays,
-            property_from<bool>(IsInArrears),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Floors,
             Gearings,
             SwapIndex,
             Spreads,
             Caps,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1930,12 +1925,12 @@ m.def("qlConundrumPricerByNumericalIntegration",
             ObjectId,
             SwaptionVol,
             YieldCurveModel,
-            property_from<double>(MeanReversion),
-            property_from<double>(LowerLimit),
-            property_from<double>(UpperLimit),
-            property_from<double>(Precision),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(MeanReversion),
+            qlap::property_from<double>(LowerLimit),
+            qlap::property_from<double>(UpperLimit),
+            qlap::property_from<double>(Precision),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -1979,11 +1974,11 @@ m.def("qlDigitalCmsLeg",
     {
         return QuantLibAddinCpp::qlDigitalCmsLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             FixingDays,
-            property_from<bool>(IsInArrears),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Gearings,
             SwapIndex,
@@ -1995,8 +1990,8 @@ m.def("qlDigitalCmsLeg",
             PutSpecs,
             PutPayoff,
             Replication,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2050,11 +2045,11 @@ m.def("qlDigitalIborLeg",
     {
         return QuantLibAddinCpp::qlDigitalIborLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             FixingDays,
-            property_from<bool>(IsInArrears),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Gearings,
             IborIndex,
@@ -2066,8 +2061,8 @@ m.def("qlDigitalIborLeg",
             PutSpecs,
             PutPayoff,
             Replication,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2110,13 +2105,13 @@ m.def("qlFixedRateLeg",
     {
         return QuantLibAddinCpp::qlFixedRateLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             Coupons,
             DayCounter,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2147,12 +2142,12 @@ m.def("qlFixedRateLeg2",
     {
         return QuantLibAddinCpp::qlFixedRateLeg2(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             Coupons,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2182,8 +2177,8 @@ m.def("qlIborCouponPricer",
             ObjectId,
             Volatility,
             IborCouponPricerType,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2218,19 +2213,19 @@ m.def("qlIborLeg",
     {
         return QuantLibAddinCpp::qlIborLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             FixingDays,
-            property_from<bool>(IsInArrears),
+            qlap::property_from<bool>(IsInArrears),
             DayCounter,
             Floors,
             Gearings,
             IborIndex,
             Spreads,
             Caps,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2275,7 +2270,7 @@ m.def("qlRangeAccrualLeg",
     {
         return QuantLibAddinCpp::qlRangeAccrualLeg(
             ObjectId,
-            property_from<std::string>(PaymentBDC),
+            qlap::property_from<std::string>(PaymentBDC),
             Nominals,
             ScheduleID,
             FixingDays,
@@ -2286,9 +2281,9 @@ m.def("qlRangeAccrualLeg",
             Spreads,
             UpperStrikes,
             ObservationsTenor,
-            property_from<std::string>(ObservationsBDC),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(ObservationsBDC),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2337,9 +2332,9 @@ m.def("qlBaseCorrelationTermStructure",
             Tenors,
             LossLevel,
             Correlations,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2376,9 +2371,9 @@ m.def("qlBlackCdsOptionEngine",
             DefaultCurve,
             RecoveryRate,
             YieldCurve,
-            property_from<double>(BlackVol),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(BlackVol),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2410,14 +2405,14 @@ m.def("qlDefaultEvent",
     {
         return QuantLibAddinCpp::qlDefaultEvent(
             ObjectId,
-            property_from<std::string>(EventType),
-            property_from_date(EventDate),
-            property_from<std::string>(Currency),
-            property_from<std::string>(Seniority),
-            property_from_date(SettlementDate),
-            property_from<double>(SettledRecovery),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(EventType),
+            qlap::property_from_date(EventDate),
+            qlap::property_from<std::string>(Currency),
+            qlap::property_from<std::string>(Seniority),
+            qlap::property_from_date(SettlementDate),
+            qlap::property_from<double>(SettledRecovery),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2450,9 +2445,9 @@ m.def("qlHazardRateCurve",
             ObjectId,
             CurveDates,
             CurveRates,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2481,8 +2476,8 @@ m.def("qlIntegralNtdEngine",
             ObjectId,
             IntegrationStep,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2508,10 +2503,10 @@ m.def("qlIssuer",
     {
         return QuantLibAddinCpp::qlIssuer(
             ObjectId,
-            property_from<std::string>(DefaultCurves),
+            qlap::property_from<std::string>(DefaultCurves),
             DefaultEvents,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2537,8 +2532,8 @@ m.def("qlMidPointCDOEngine",
         return QuantLibAddinCpp::qlMidPointCDOEngine(
             ObjectId,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2567,8 +2562,8 @@ m.def("qlMidPointCdsEngine",
             DefaultCurve,
             RecoveryRate,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2604,15 +2599,15 @@ m.def("qlNthToDefault",
             ObjectId,
             Basket,
             Order,
-            property_from<std::string>(BuyerSeller),
+            qlap::property_from<std::string>(BuyerSeller),
             PremiumSchedule,
             Upfront,
             Spread,
             DayCounter,
             Notional,
             SettlesAccrual,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2647,12 +2642,12 @@ m.def("qlPiecewiseFlatForwardCurve",
     {
         return QuantLibAddinCpp::qlPiecewiseFlatForwardCurve(
             ObjectId,
-            property_from_date(ReferenceDate),
+            qlap::property_from_date(ReferenceDate),
             RateHelpers,
-            property_from<std::string>(DayCounter),
-            property_from<double>(Accuracy),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<double>(Accuracy),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2684,12 +2679,12 @@ m.def("qlPiecewiseHazardRateCurve",
         return QuantLibAddinCpp::qlPiecewiseHazardRateCurve(
             ObjectId,
             Helpers,
-            property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(DayCounter),
             Calendar,
             Interpolation,
-            property_from<double>(Accuracy),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Accuracy),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2728,9 +2723,9 @@ m.def("qlSpreadCdsHelper",
     {
         return QuantLibAddinCpp::qlSpreadCdsHelper(
             ObjectId,
-            property_from<double>(RunningSpread),
+            qlap::property_from<double>(RunningSpread),
             Tenor,
-            property_from<std::string>(SettlementDays),
+            qlap::property_from<long>(SettlementDays),
             Calendar,
             Frequency,
             PaymentConvention,
@@ -2738,10 +2733,10 @@ m.def("qlSpreadCdsHelper",
             DayCounter,
             RecoveryRate,
             DiscountingCurve,
-            property_from<bool>(SettleAccrual),
-            property_from<bool>(PayAtDefault),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(SettleAccrual),
+            qlap::property_from<bool>(PayAtDefault),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2783,14 +2778,14 @@ m.def("qlSyntheticCDO",
         return QuantLibAddinCpp::qlSyntheticCDO(
             ObjectId,
             Basket,
-            property_from<std::string>(BuyerSeller),
+            qlap::property_from<std::string>(BuyerSeller),
             PremiumSchedule,
             Upfront,
             Spread,
             DayCounter,
-            property_from<std::string>(PaymentConvention),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(PaymentConvention),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2835,14 +2830,14 @@ m.def("qlCTSMMCapletAlphaFormCalibration",
             SwapPiecewiseConstantVariances,
             CapletVols,
             CurveState,
-            property_from<std::string>(Displacement),
+            qlap::property_from<std::string>(Displacement),
             AlphaInitial,
             AlphaMax,
             AlphaMin,
-            property_from<bool>(MaximizeHomogeneity),
-            property_from<std::string>(AlphaForm),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(MaximizeHomogeneity),
+            qlap::property_from<std::string>(AlphaForm),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2887,10 +2882,10 @@ m.def("qlCTSMMCapletMaxHomogeneityCalibration",
             SwapPiecewiseConstantVariances,
             CapletVols,
             CurveState,
-            property_from<std::string>(Displacement),
-            property_from<double>(Caplet0Swaption1Priority),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(Displacement),
+            qlap::property_from<double>(Caplet0Swaption1Priority),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2933,12 +2928,12 @@ m.def("qlCTSMMCapletOriginalCalibration",
             SwapPiecewiseConstantVariances,
             CapletVols,
             CurveState,
-            property_from<std::string>(Displacement),
+            qlap::property_from<std::string>(Displacement),
             Alphas,
-            property_from<bool>(LowestRoot),
+            qlap::property_from<bool>(LowestRoot),
             UseFullApprox,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -2973,8 +2968,8 @@ m.def("qlCMSwapCurveState",
             ObjectId,
             RateTimes,
             SpanningForwards,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3000,8 +2995,8 @@ m.def("qlCoterminalSwapCurveState",
         return QuantLibAddinCpp::qlCoterminalSwapCurveState(
             ObjectId,
             RateTimes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3026,8 +3021,8 @@ m.def("qlLMMCurveState",
         return QuantLibAddinCpp::qlLMMCurveState(
             ObjectId,
             RateTimes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3054,12 +3049,12 @@ m.def("qlFlatHazardRate",
     {
         return QuantLibAddinCpp::qlFlatHazardRate(
             ObjectId,
-            property_from<long>(NDays),
-            property_from<std::string>(Calendar),
-            property_from<double>(Rate),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(NDays),
+            qlap::property_from<std::string>(Calendar),
+            qlap::property_from<double>(Rate),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3086,9 +3081,9 @@ m.def("qlRelinkableHandleDefaultProbabilityTermStructure",
     {
         return QuantLibAddinCpp::qlRelinkableHandleDefaultProbabilityTermStructure(
             ObjectId,
-            property_from<std::string>(CurrentLink),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CurrentLink),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3115,8 +3110,8 @@ m.def("qlEvolutionDescription",
             ObjectId,
             RateTimes,
             EvolutionTimes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3142,8 +3137,8 @@ m.def("qlEvolutionDescriptionFromProduct",
         return QuantLibAddinCpp::qlEvolutionDescriptionFromProduct(
             ObjectId,
             Product,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3169,11 +3164,11 @@ m.def("qlAmericanExercise",
     {
         return QuantLibAddinCpp::qlAmericanExercise(
             ObjectId,
-            property_from_date(EarliestDate),
-            property_from_date(LatestDate),
-            property_from<bool>(PayoffAtExpiry),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(EarliestDate),
+            qlap::property_from_date(LatestDate),
+            qlap::property_from<bool>(PayoffAtExpiry),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3201,9 +3196,9 @@ m.def("qlBermudanExercise",
         return QuantLibAddinCpp::qlBermudanExercise(
             ObjectId,
             Dates,
-            property_from<bool>(PayoffAtExpiry),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(PayoffAtExpiry),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3228,9 +3223,9 @@ m.def("qlEuropeanExercise",
     {
         return QuantLibAddinCpp::qlEuropeanExercise(
             ObjectId,
-            property_from_date(ExpiryDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(ExpiryDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3260,15 +3255,15 @@ m.def("qlFRA",
     {
         return QuantLibAddinCpp::qlFRA(
             ObjectId,
-            property_from_date(ValueDate),
-            property_from_date(MaturityDate),
+            qlap::property_from_date(ValueDate),
+            qlap::property_from_date(MaturityDate),
             Position,
             Strike,
             Notional,
             IborIndex,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3302,9 +3297,9 @@ m.def("qlDiscountingFxForwardEngine",
             ObjectId,
             SourceCcyDiscountCurve,
             TargetCcyDiscountCurve,
-            property_from<double>(SpotFx),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(SpotFx),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3341,12 +3336,12 @@ m.def("qlFxForward",
             SourceCurrency,
             TargetNominal,
             TargetCurrency,
-            property_from_date(MaturityDate),
+            qlap::property_from_date(MaturityDate),
             PaySourceCurrency,
-            property_from<long>(SettlementDays),
-            property_from<std::string>(PaymentCalendar),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(SettlementDays),
+            qlap::property_from<std::string>(PaymentCalendar),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3373,8 +3368,8 @@ m.def("ohRepositoryDeleteAllObjects",
     )
     {
         return QuantLibAddinCpp::ohRepositoryDeleteAllObjects(
-            property_from<bool>(DeletePermanent),
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(DeletePermanent),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("DeletePermanent"),
@@ -3391,7 +3386,7 @@ m.def("ohRepositoryLogObject",
     {
         return QuantLibAddinCpp::ohRepositoryLogObject(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -3408,7 +3403,7 @@ m.def("qlHandleCurrentLink",
     {
         return QuantLibAddinCpp::qlHandleCurrentLink(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -3425,7 +3420,7 @@ m.def("qlHandleEmpty",
     {
         return QuantLibAddinCpp::qlHandleEmpty(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -3443,8 +3438,8 @@ m.def("qlRelinkableHandleLinkTo",
     {
         return QuantLibAddinCpp::qlRelinkableHandleLinkTo(
             ObjectId,
-            property_from<std::string>(CurrentLink),
-            property_from<bool>(Trigger)
+            qlap::property_from<std::string>(CurrentLink),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -3465,9 +3460,9 @@ m.def("qlBMAIndex",
     {
         return QuantLibAddinCpp::qlBMAIndex(
             ObjectId,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3491,9 +3486,9 @@ m.def("qlEonia",
     {
         return QuantLibAddinCpp::qlEonia(
             ObjectId,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3519,9 +3514,9 @@ m.def("qlEuribor",
         return QuantLibAddinCpp::qlEuribor(
             ObjectId,
             Tenor,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3548,9 +3543,9 @@ m.def("qlEuribor365",
         return QuantLibAddinCpp::qlEuribor365(
             ObjectId,
             Tenor,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3578,12 +3573,12 @@ m.def("qlEuriborSwap",
     {
         return QuantLibAddinCpp::qlEuriborSwap(
             ObjectId,
-            property_from<std::string>(FixingType),
+            qlap::property_from<std::string>(FixingType),
             Tenor,
-            property_from<std::string>(FwdCurve),
-            property_from<std::string>(DiscCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(FwdCurve),
+            qlap::property_from<std::string>(DiscCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3613,10 +3608,10 @@ m.def("qlEuriborSwapIsdaFixA",
         return QuantLibAddinCpp::qlEuriborSwapIsdaFixA(
             ObjectId,
             Tenor,
-            property_from<std::string>(FwdCurve),
-            property_from<std::string>(DiscCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(FwdCurve),
+            qlap::property_from<std::string>(DiscCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3658,9 +3653,9 @@ m.def("qlIborIndex",
             BDayConvention,
             EndOfMonth,
             DayCounter,
-            property_from<std::string>(FwdCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(FwdCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3694,8 +3689,8 @@ m.def("qlIndexAddFixings",
             ObjectId,
             FixingDates,
             FixingValues,
-            property_from<bool>(ForceOverwrite),
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(ForceOverwrite),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -3722,9 +3717,9 @@ m.def("qlLibor",
             ObjectId,
             Currency,
             Tenor,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3755,12 +3750,12 @@ m.def("qlLiborSwap",
         return QuantLibAddinCpp::qlLiborSwap(
             ObjectId,
             Currency,
-            property_from<std::string>(FixingType),
+            qlap::property_from<std::string>(FixingType),
             Tenor,
-            property_from<std::string>(FwdCurve),
-            property_from<std::string>(DiscCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(FwdCurve),
+            qlap::property_from<std::string>(DiscCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3798,9 +3793,9 @@ m.def("qlOvernightIndex",
             Currency,
             Calendar,
             DayCounter,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3847,11 +3842,11 @@ m.def("qlProxyIbor",
             BDayConvention,
             EndOfMonth,
             DayCounter,
-            property_from<double>(Gearing),
+            qlap::property_from<double>(Gearing),
             IborIndex,
-            property_from<double>(Spread),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3885,9 +3880,9 @@ m.def("qlSonia",
     {
         return QuantLibAddinCpp::qlSonia(
             ObjectId,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3929,9 +3924,9 @@ m.def("qlSwapIndex",
             FixedLegBDC,
             FixedLegDayCounter,
             IborIndex,
-            property_from<std::string>(DiscCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -3973,7 +3968,7 @@ m.def("qlInstrumentNPV",
     {
         return QuantLibAddinCpp::qlInstrumentNPV(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -3992,7 +3987,7 @@ m.def("qlInstrumentSetPricingEngine",
         return QuantLibAddinCpp::qlInstrumentSetPricingEngine(
             ObjectId,
             PricingEngine,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -4010,7 +4005,7 @@ m.def("qlInstrumentValuationDate",
     {
         return QuantLibAddinCpp::qlInstrumentValuationDate(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -4044,19 +4039,19 @@ m.def("qlAbcdInterpolation",
             ObjectId,
             XArray,
             YArray,
-            property_from<double>(A),
-            property_from<double>(B),
-            property_from<double>(C),
-            property_from<double>(D),
-            property_from<bool>(AIsFixed),
-            property_from<bool>(BIsFixed),
-            property_from<bool>(CIsFixed),
-            property_from<bool>(DIsFixed),
-            property_from<bool>(VegaWeighted),
-            property_from<std::string>(EndCriteria),
-            property_from<std::string>(OptimizationMeth),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(A),
+            qlap::property_from<double>(B),
+            qlap::property_from<double>(C),
+            qlap::property_from<double>(D),
+            qlap::property_from<bool>(AIsFixed),
+            qlap::property_from<bool>(BIsFixed),
+            qlap::property_from<bool>(CIsFixed),
+            qlap::property_from<bool>(DIsFixed),
+            qlap::property_from<bool>(VegaWeighted),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<std::string>(OptimizationMeth),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4101,14 +4096,14 @@ m.def("qlCubicInterpolation",
             ObjectId,
             XArray,
             YArray,
-            property_from<std::string>(DerApprox),
-            property_from<bool>(Monotonic),
-            property_from<std::string>(LeftConditionType),
-            property_from<double>(LeftConditionValue),
-            property_from<std::string>(RightConditionType),
-            property_from<double>(RightConditionValue),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DerApprox),
+            qlap::property_from<bool>(Monotonic),
+            qlap::property_from<std::string>(LeftConditionType),
+            qlap::property_from<double>(LeftConditionValue),
+            qlap::property_from<std::string>(RightConditionType),
+            qlap::property_from<double>(RightConditionValue),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4137,8 +4132,8 @@ m.def("qlExtrapolatorEnableExtrapolation",
     {
         return QuantLibAddinCpp::qlExtrapolatorEnableExtrapolation(
             ObjectId,
-            property_from<bool>(ExtrapolationFlag),
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(ExtrapolationFlag),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -4161,11 +4156,11 @@ m.def("qlInterpolation",
     {
         return QuantLibAddinCpp::qlInterpolation(
             ObjectId,
-            property_from<std::string>(InterpolationType),
+            qlap::property_from<std::string>(InterpolationType),
             XArray,
             YArray,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4203,15 +4198,15 @@ m.def("qlMixedLinearCubicInterpolation",
             XArray,
             YArray,
             SwitchIndex,
-            property_from<std::string>(MixedInterpolationBehavior),
-            property_from<std::string>(DerApprox),
-            property_from<bool>(Monotonic),
-            property_from<std::string>(LeftConditionType),
-            property_from<double>(LeftConditionValue),
-            property_from<std::string>(RightConditionType),
-            property_from<double>(RightConditionValue),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(MixedInterpolationBehavior),
+            qlap::property_from<std::string>(DerApprox),
+            qlap::property_from<bool>(Monotonic),
+            qlap::property_from<std::string>(LeftConditionType),
+            qlap::property_from<double>(LeftConditionValue),
+            qlap::property_from<std::string>(RightConditionType),
+            qlap::property_from<double>(RightConditionValue),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4261,20 +4256,20 @@ m.def("qlSABRInterpolation",
             XArray,
             YArray,
             Expiry,
-            property_from<double>(Forward),
-            property_from<double>(Alpha),
-            property_from<double>(Beta),
-            property_from<double>(Nu),
-            property_from<double>(Rho),
-            property_from<bool>(AlphaIsFixed),
-            property_from<bool>(BetaIsFixed),
-            property_from<bool>(NuIsFixed),
-            property_from<bool>(RhoIsFixed),
-            property_from<bool>(VegaWeighted),
-            property_from<std::string>(EndCriteria),
-            property_from<std::string>(OptimizationMeth),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Forward),
+            qlap::property_from<double>(Alpha),
+            qlap::property_from<double>(Beta),
+            qlap::property_from<double>(Nu),
+            qlap::property_from<double>(Rho),
+            qlap::property_from<bool>(AlphaIsFixed),
+            qlap::property_from<bool>(BetaIsFixed),
+            qlap::property_from<bool>(NuIsFixed),
+            qlap::property_from<bool>(RhoIsFixed),
+            qlap::property_from<bool>(VegaWeighted),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<std::string>(OptimizationMeth),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4300,6 +4295,26 @@ m.def("qlSABRInterpolation",
     "XArray: x array.\nYArray: y array.\nExpiry: expiry time in years.\nForward: at-the-money forward rate.\nAlpha: alpha (fixed value or guess).\nBeta: beta (fixed value or guess).\nNu: nu (fixed value or guess).\nRho: rho (fixed value or guess).\nAlphaIsFixed: TRUE if the alpha value provided is to be kept fixed, FALSE if it is just a guess.\nBetaIsFixed: TRUE if the beta value provided is to be kept fixed, FALSE if it is just a guess.\nNuIsFixed: TRUE if the nu value provided is to be kept fixed, FALSE if it is just a guess.\nRhoIsFixed: TRUE if the rho value provided is to be kept fixed, FALSE if it is just a guess.\nVegaWeighted: TRUE if the interpolation is weighted using options Vega.\nEndCriteria: EndCriteria object ID.\nOptimizationMeth: OptimizationMethod object ID."
 );
 
+m.def("qlYieldTermStructureEnableExtrapolation",
+
+    [](
+        std::string & ObjectId,
+        py::object ExtrapolationFlag,
+        py::object Trigger
+    )
+    {
+        return QuantLibAddinCpp::qlYieldTermStructureEnableExtrapolation(
+            ObjectId,
+            qlap::property_from<bool>(ExtrapolationFlag),
+            qlap::property_from<bool>(Trigger)
+        );
+    },
+    py::arg("ObjectId"),
+    py::arg("ExtrapolationFlag"),
+    py::arg("Trigger"),
+    "Sets the enable extrapolation flag to the given Extrapolator(YieldTermStructure) object.\n\nExtrapolationFlag: global extrapolation flag."
+);
+
 m.def("qlInterestRate",
 
     [](
@@ -4318,9 +4333,9 @@ m.def("qlInterestRate",
             Rate,
             DayCounter,
             Compounding,
-            property_from<std::string>(Frequency),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(Frequency),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4351,9 +4366,9 @@ m.def("qlLeg",
             ObjectId,
             Amounts,
             Dates,
-            property_from<bool>(ToBeSorted),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(ToBeSorted),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4380,8 +4395,8 @@ m.def("qlLegFromCapFloor",
         return QuantLibAddinCpp::qlLegFromCapFloor(
             ObjectId,
             CapFloor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4408,8 +4423,8 @@ m.def("qlLegFromSwap",
             ObjectId,
             Swap,
             LegNumber,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4433,7 +4448,7 @@ m.def("qlLegSetCouponPricers",
         return QuantLibAddinCpp::qlLegSetCouponPricers(
             ObjectId,
             FloatingRateCouponPricer,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -4456,9 +4471,9 @@ m.def("qlMultiPhaseLeg",
         return QuantLibAddinCpp::qlMultiPhaseLeg(
             ObjectId,
             LegIDs,
-            property_from<bool>(ToBeSorted),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(ToBeSorted),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4481,8 +4496,8 @@ m.def("ohLogSetConsole",
     {
         return QuantLibAddinCpp::ohLogSetConsole(
             Console,
-            property_from<long>(LogLevel),
-            property_from<bool>(Trigger)
+            qlap::property_from<long>(LogLevel),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Console"),
@@ -4501,8 +4516,8 @@ m.def("ohLogSetFile",
     {
         return QuantLibAddinCpp::ohLogSetFile(
             LogFileName,
-            property_from<long>(LogLevel),
-            property_from<bool>(Trigger)
+            qlap::property_from<long>(LogLevel),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("LogFileName"),
@@ -4521,8 +4536,8 @@ m.def("ohLogWriteMessage",
     {
         return QuantLibAddinCpp::ohLogWriteMessage(
             LogMessage,
-            property_from<long>(LogLevel),
-            property_from<bool>(Trigger)
+            qlap::property_from<long>(LogLevel),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("LogMessage"),
@@ -4548,8 +4563,8 @@ m.def("qlForwardRateIpc",
             MarketModel,
             BrownianGeneratorFactory,
             Numeraires,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4580,8 +4595,8 @@ m.def("qlForwardRateNormalPc",
             MarketModel,
             BrownianGeneratorFactory,
             Numeraires,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4612,8 +4627,8 @@ m.def("qlForwardRatePc",
             MarketModel,
             BrownianGeneratorFactory,
             Numeraires,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4658,8 +4673,8 @@ m.def("qlAbcdVol",
             Factors,
             InitialRates,
             Displacements,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4693,8 +4708,8 @@ m.def("qlCotSwapToFwdAdapter",
         return QuantLibAddinCpp::qlCotSwapToFwdAdapter(
             ObjectId,
             CoterminalModel,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4729,8 +4744,8 @@ m.def("qlFlatVol",
             Factors,
             InitialRates,
             Displacements,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4769,9 +4784,9 @@ m.def("qlFlatVolFactory",
             Times,
             Volatilities,
             YieldCurve,
-            property_from<std::string>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4807,8 +4822,8 @@ m.def("qlFwdPeriodAdapter",
             Period,
             Offset,
             Displacements,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4836,8 +4851,8 @@ m.def("qlFwdToCotSwapAdapter",
         return QuantLibAddinCpp::qlFwdToCotSwapAdapter(
             ObjectId,
             ForwardModel,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4862,8 +4877,8 @@ m.def("qlPseudoRootFacade",
         return QuantLibAddinCpp::qlPseudoRootFacade(
             ObjectId,
             Calibrator,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4882,7 +4897,7 @@ m.def("ohVersion",
     )
     {
         return QuantLibAddinCpp::ohVersion(
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Trigger"),
@@ -4903,11 +4918,11 @@ m.def("qlArmijoLineSearch",
     {
         return QuantLibAddinCpp::qlArmijoLineSearch(
             ObjectId,
-            property_from<double>(Epsilon),
-            property_from<double>(Alpha),
-            property_from<double>(Beta),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Epsilon),
+            qlap::property_from<double>(Alpha),
+            qlap::property_from<double>(Beta),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4933,9 +4948,9 @@ m.def("qlConjugateGradient",
     {
         return QuantLibAddinCpp::qlConjugateGradient(
             ObjectId,
-            property_from<std::string>(LineSearch),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(LineSearch),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4968,8 +4983,8 @@ m.def("qlEndCriteria",
             RootEpsilon,
             FunctionEpsilon,
             GradientNormEpsilon,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -4999,11 +5014,11 @@ m.def("qlLevenbergMarquardt",
     {
         return QuantLibAddinCpp::qlLevenbergMarquardt(
             ObjectId,
-            property_from<double>(Epsfcn),
-            property_from<double>(Xtol),
-            property_from<double>(Gtol),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Epsfcn),
+            qlap::property_from<double>(Xtol),
+            qlap::property_from<double>(Gtol),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5028,8 +5043,8 @@ m.def("qlNoConstraint",
     {
         return QuantLibAddinCpp::qlNoConstraint(
             ObjectId,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5052,8 +5067,8 @@ m.def("qlSimplex",
         return QuantLibAddinCpp::qlSimplex(
             ObjectId,
             Lambda,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5077,9 +5092,9 @@ m.def("qlSteepestDescent",
     {
         return QuantLibAddinCpp::qlSteepestDescent(
             ObjectId,
-            property_from<std::string>(LineSearch),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(LineSearch),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5112,8 +5127,8 @@ m.def("qlBarrierOption",
             Rebate,
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5146,8 +5161,8 @@ m.def("qlCaAsianOption",
             AverageType,
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5184,8 +5199,8 @@ m.def("qlDaAsianOption",
             FixingDates,
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5221,8 +5236,8 @@ m.def("qlDividendVanillaOption",
             Exercise,
             DividendDates,
             Dividends,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5252,8 +5267,8 @@ m.def("qlEuropeanOption",
             ObjectId,
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5282,11 +5297,11 @@ m.def("qlForwardVanillaOption",
         return QuantLibAddinCpp::qlForwardVanillaOption(
             ObjectId,
             Moneyness,
-            property_from_date(ResetDate),
+            qlap::property_from_date(ResetDate),
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5317,11 +5332,11 @@ m.def("qlQuantoForwardVanillaOption",
         return QuantLibAddinCpp::qlQuantoForwardVanillaOption(
             ObjectId,
             Moneyness,
-            property_from_date(ResetDate),
+            qlap::property_from_date(ResetDate),
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5351,8 +5366,8 @@ m.def("qlQuantoVanillaOption",
             ObjectId,
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5380,8 +5395,8 @@ m.def("qlVanillaOption",
             ObjectId,
             Payoff,
             Exercise,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5411,14 +5426,14 @@ m.def("qlMakeDatedOIS",
     {
         return QuantLibAddinCpp::qlMakeDatedOIS(
             ObjectId,
-            property_from_date(StartDate),
-            property_from_date(EndDate),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(EndDate),
             OvernightIndex,
-            property_from<std::string>(FixedRate),
-            property_from<std::string>(FixDayCounter),
-            property_from<std::string>(Spread),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(FixedRate),
+            qlap::property_from<std::string>(FixDayCounter),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5454,16 +5469,16 @@ m.def("qlMakeOIS",
     {
         return QuantLibAddinCpp::qlMakeOIS(
             ObjectId,
-            property_from<std::string>(SettlDays),
+            qlap::property_from<long>(SettlDays),
             SwapTenor,
             OvernightIndex,
-            property_from<std::string>(FixedRate),
+            qlap::property_from<double>(FixedRate),
             ForwardStart,
-            property_from<std::string>(FixDayCounter),
-            property_from<std::string>(Spread),
-            property_from<std::string>(PaymentLag),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(FixDayCounter),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<long>(PaymentLag),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5501,16 +5516,16 @@ m.def("qlOvernightIndexedSwap",
     {
         return QuantLibAddinCpp::qlOvernightIndexedSwap(
             ObjectId,
-            property_from<std::string>(PayerReceiver),
+            qlap::property_from<std::string>(PayerReceiver),
             Nominal,
             Schedule,
-            property_from<std::string>(FixedRate),
+            qlap::property_from<double>(FixedRate),
             FixDayCounter,
             OvernightIndex,
-            property_from<std::string>(Spread),
-            property_from<std::string>(PaymentLag),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<long>(PaymentLag),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5542,8 +5557,8 @@ m.def("qlOvernightIndexedSwapFromOISRateHelper",
         return QuantLibAddinCpp::qlOvernightIndexedSwapFromOISRateHelper(
             ObjectId,
             OISRateHelper,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5588,8 +5603,8 @@ m.def("qlDoubleStickyRatchetPayoff",
             InitialValue1,
             InitialValue2,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5640,8 +5655,8 @@ m.def("qlRatchetMaxPayoff",
             InitialValue1,
             InitialValue2,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5690,8 +5705,8 @@ m.def("qlRatchetMinPayoff",
             InitialValue1,
             InitialValue2,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5734,8 +5749,8 @@ m.def("qlRatchetPayoff",
             Spread2,
             InitialValue,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5781,8 +5796,8 @@ m.def("qlStickyMaxPayoff",
             InitialValue1,
             InitialValue2,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5831,8 +5846,8 @@ m.def("qlStickyMinPayoff",
             InitialValue1,
             InitialValue2,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5875,8 +5890,8 @@ m.def("qlStickyPayoff",
             Spread2,
             InitialValue,
             AccrualFactor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5911,9 +5926,9 @@ m.def("qlStrikedTypePayoff",
             PayoffID,
             OptionType,
             Strike,
-            property_from<double>(ThirdParameter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(ThirdParameter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5947,16 +5962,16 @@ m.def("qlPiecewiseYieldCurve",
     {
         return QuantLibAddinCpp::qlPiecewiseYieldCurve(
             ObjectId,
-            property_from<std::string>(NDays),
+            qlap::property_from<long>(NDays),
             Calendar,
             RateHelpers,
-            property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(DayCounter),
             Jumps,
             JumpDates,
-            property_from<std::string>(TraitsID),
-            property_from<std::string>(InterpolatorID),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(TraitsID),
+            qlap::property_from<std::string>(InterpolatorID),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -5996,18 +6011,18 @@ m.def("qlPiecewiseYieldCurveMixedInterpolation",
     {
         return QuantLibAddinCpp::qlPiecewiseYieldCurveMixedInterpolation(
             ObjectId,
-            property_from<std::string>(NDays),
+            qlap::property_from<long>(NDays),
             Calendar,
             RateHelpers,
-            property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(DayCounter),
             Jumps,
             JumpDates,
-            property_from<std::string>(TraitsID),
-            property_from<std::string>(InterpolatorID),
-            property_from<std::string>(MixedInterpolationBehavior),
+            qlap::property_from<std::string>(TraitsID),
+            qlap::property_from<std::string>(InterpolatorID),
+            qlap::property_from<std::string>(MixedInterpolationBehavior),
             PillarsBeforeChange,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6041,8 +6056,8 @@ m.def("qlAnalyticCapFloorEngine",
         return QuantLibAddinCpp::qlAnalyticCapFloorEngine(
             ObjectId,
             HandleModel,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6069,8 +6084,8 @@ m.def("qlBachelierCapFloorEngine",
             ObjectId,
             YieldCurve,
             VolTS,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6098,10 +6113,10 @@ m.def("qlBachelierCapFloorEngine2",
         return QuantLibAddinCpp::qlBachelierCapFloorEngine2(
             ObjectId,
             YieldCurve,
-            property_from<double>(Vol),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Vol),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6132,8 +6147,8 @@ m.def("qlBinomialPricingEngine",
             EngineID,
             ProcessID,
             TimeSteps,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6167,9 +6182,9 @@ m.def("qlBlackCalculator",
             Strike,
             AtmForwardValue,
             StdDev,
-            property_from<double>(Deflator),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Deflator),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6203,9 +6218,9 @@ m.def("qlBlackCalculator2",
             PayoffID,
             AtmForwardValue,
             StdDev,
-            property_from<double>(Deflator),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Deflator),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6236,9 +6251,9 @@ m.def("qlBlackCapFloorEngine",
             ObjectId,
             YieldCurve,
             VolTS,
-            property_from<double>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6268,11 +6283,11 @@ m.def("qlBlackCapFloorEngine2",
         return QuantLibAddinCpp::qlBlackCapFloorEngine2(
             ObjectId,
             YieldCurve,
-            property_from<double>(Vol),
-            property_from<double>(Displacement),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Vol),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6307,11 +6322,11 @@ m.def("qlBlackScholesCalculator",
             OptionType,
             Strike,
             Spot,
-            property_from<std::string>(Growth),
+            qlap::property_from<std::string>(Growth),
             StdDev,
-            property_from<double>(Deflator),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Deflator),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6346,11 +6361,11 @@ m.def("qlBlackScholesCalculator2",
             ObjectId,
             PayoffID,
             Spot,
-            property_from<std::string>(Growth),
+            qlap::property_from<std::string>(Growth),
             StdDev,
-            property_from<double>(Deflator),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Deflator),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6381,8 +6396,8 @@ m.def("qlBlackSwaptionEngine",
             ObjectId,
             YieldCurve,
             VolTS,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6411,11 +6426,11 @@ m.def("qlBlackSwaptionEngine2",
         return QuantLibAddinCpp::qlBlackSwaptionEngine2(
             ObjectId,
             YieldCurve,
-            property_from<double>(Vol),
-            property_from<double>(Displacement),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Vol),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6443,8 +6458,8 @@ m.def("qlBondEngine",
         return QuantLibAddinCpp::qlBondEngine(
             ObjectId,
             YieldCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6472,11 +6487,11 @@ m.def("qlDiscountingSwapEngine",
         return QuantLibAddinCpp::qlDiscountingSwapEngine(
             ObjectId,
             YieldCurve,
-            property_from<bool>(IncludeSettlDate),
-            property_from_date(SettlementDate),
-            property_from_date(NpvDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(IncludeSettlDate),
+            qlap::property_from_date(SettlementDate),
+            qlap::property_from_date(NpvDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6505,9 +6520,9 @@ m.def("qlJamshidianSwaptionEngine",
         return QuantLibAddinCpp::qlJamshidianSwaptionEngine(
             ObjectId,
             Model,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6537,8 +6552,8 @@ m.def("qlModelG2SwaptionEngine",
             Model,
             Range,
             Intervals,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6567,8 +6582,8 @@ m.def("qlPricingEngine",
             ObjectId,
             EngineID,
             ProcessID,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6598,8 +6613,8 @@ m.def("qlRiskyBondEngine",
             DefaultCurve,
             Recovery,
             DiscountingCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6629,9 +6644,9 @@ m.def("qlTreeSwaptionEngine",
             ObjectId,
             Model,
             Nsteps,
-            property_from<std::string>(YieldCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(YieldCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6664,12 +6679,12 @@ m.def("qlGeneralizedBlackScholesProcess",
             ObjectId,
             BlackVolID,
             Underlying,
-            property_from<std::string>(DayCounter),
-            property_from_date(SettlementDate),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from_date(SettlementDate),
             RiskFreeRate,
             DividendYield,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6697,8 +6712,8 @@ m.def("qlMarketModelMultiProductComposite",
     {
         return QuantLibAddinCpp::qlMarketModelMultiProductComposite(
             ObjectId,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6737,8 +6752,8 @@ m.def("qlMarketModelMultiStepRatchet",
             SpreadOfFixing,
             InitialFloor,
             Payer,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6777,8 +6792,8 @@ m.def("qlMarketModelOneStepForwards",
             Accruals,
             PaymentTimes,
             Strikes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6812,8 +6827,8 @@ m.def("qlMarketModelOneStepOptionlets",
             Accruals,
             PaymentTimes,
             Payoffs,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6842,11 +6857,11 @@ m.def("qlCompositeQuote",
     {
         return QuantLibAddinCpp::qlCompositeQuote(
             ObjectId,
-            property_from<double>(Element1),
-            property_from<double>(Element2),
+            qlap::property_from<double>(Element1),
+            qlap::property_from<double>(Element2),
             Operator,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6877,14 +6892,14 @@ m.def("qlEurodollarFuturesImpliedStdDevQuote",
     {
         return QuantLibAddinCpp::qlEurodollarFuturesImpliedStdDevQuote(
             ObjectId,
-            property_from<double>(AtmForwardValue),
-            property_from<double>(CallPrice),
-            property_from<double>(PutPrice),
+            qlap::property_from<double>(AtmForwardValue),
+            qlap::property_from<double>(CallPrice),
+            qlap::property_from<double>(PutPrice),
             Strike,
-            property_from<double>(Guess),
-            property_from<double>(Accuracy),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Guess),
+            qlap::property_from<double>(Accuracy),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6916,10 +6931,10 @@ m.def("qlForwardSwapQuote",
         return QuantLibAddinCpp::qlForwardSwapQuote(
             ObjectId,
             SwapIndex,
-            property_from<double>(Spread),
+            qlap::property_from<double>(Spread),
             ForwardStart,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6947,9 +6962,9 @@ m.def("qlForwardValueQuote",
         return QuantLibAddinCpp::qlForwardValueQuote(
             ObjectId,
             IborIndex,
-            property_from_date(FixingDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(FixingDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -6980,11 +6995,11 @@ m.def("qlFuturesConvAdjustmentQuote",
             ObjectId,
             IborIndex,
             ImmCode,
-            property_from<double>(FuturesQuote),
-            property_from<double>(Volatility),
-            property_from<double>(MeanReversion),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(FuturesQuote),
+            qlap::property_from<double>(Volatility),
+            qlap::property_from<double>(MeanReversion),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7018,13 +7033,13 @@ m.def("qlImpliedStdDevQuote",
         return QuantLibAddinCpp::qlImpliedStdDevQuote(
             ObjectId,
             OptionType,
-            property_from<double>(AtmForwardValue),
-            property_from<double>(OptionPrice),
+            qlap::property_from<double>(AtmForwardValue),
+            qlap::property_from<double>(OptionPrice),
             Strike,
-            property_from<double>(Guess),
-            property_from<double>(Accuracy),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Guess),
+            qlap::property_from<double>(Accuracy),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7054,8 +7069,8 @@ m.def("qlLastFixingQuote",
         return QuantLibAddinCpp::qlLastFixingQuote(
             ObjectId,
             Index,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7079,9 +7094,9 @@ m.def("qlRelinkableHandleQuote",
     {
         return QuantLibAddinCpp::qlRelinkableHandleQuote(
             ObjectId,
-            property_from<std::string>(CurrentLink),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CurrentLink),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7106,10 +7121,10 @@ m.def("qlSimpleQuote",
     {
         return QuantLibAddinCpp::qlSimpleQuote(
             ObjectId,
-            property_from<double>(Value),
+            qlap::property_from<double>(Value),
             TickValue,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7132,8 +7147,8 @@ m.def("qlSimpleQuoteSetValue",
     {
         return QuantLibAddinCpp::qlSimpleQuoteSetValue(
             ObjectId,
-            property_from<double>(Value),
-            property_from<bool>(Trigger)
+            qlap::property_from<double>(Value),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -7155,8 +7170,8 @@ m.def("qlFaureRsg",
         return QuantLibAddinCpp::qlFaureRsg(
             ObjectId,
             Dimension,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7183,8 +7198,8 @@ m.def("qlHaltonRsg",
             ObjectId,
             Dimension,
             Seed,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7212,8 +7227,8 @@ m.def("qlMersenneTwisterRsg",
             ObjectId,
             Dimension,
             Seed,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7241,8 +7256,8 @@ m.def("qlSobolRsg",
             ObjectId,
             Dimension,
             Seed,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7281,21 +7296,21 @@ m.def("qlRangeAccrualFloatersCoupon",
         return QuantLibAddinCpp::qlRangeAccrualFloatersCoupon(
             ObjectId,
             Nominal,
-            property_from_date(PaymentDate),
+            qlap::property_from_date(PaymentDate),
             IborIndex,
-            property_from_date(StartDate),
-            property_from_date(EndDate),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(EndDate),
             FixingDays,
             DayCountID,
             Gearings,
             Spreads,
-            property_from_date(RefPeriodStart),
-            property_from_date(RefPeriodEnd),
+            qlap::property_from_date(RefPeriodStart),
+            qlap::property_from_date(RefPeriodEnd),
             ObserSchedID,
             LowerTrigger,
             UpperTrigger,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7335,8 +7350,8 @@ m.def("qlRangeAccrualFloatersCouponFromLeg",
             ObjectId,
             RangeAccrualLeg,
             Position,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7370,8 +7385,8 @@ m.def("qlRangeAccrualPricerByBgm",
             SmileOnEndDateID,
             WithSmile,
             ByCallSpread,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7401,11 +7416,11 @@ m.def("qlBondHelper",
     {
         return QuantLibAddinCpp::qlBondHelper(
             ObjectId,
-            property_from<double>(Price),
+            qlap::property_from<double>(Price),
             Bond,
-            property_from<bool>(UseCleanPrice),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(UseCleanPrice),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7441,7 +7456,7 @@ m.def("qlConstNotionalCrossCurrencyBasisSwapRateHelper",
     {
         return QuantLibAddinCpp::qlConstNotionalCrossCurrencyBasisSwapRateHelper(
             ObjectId,
-            property_from<double>(Basis),
+            qlap::property_from<double>(Basis),
             Tenor,
             SettlDays,
             Calendar,
@@ -7449,11 +7464,11 @@ m.def("qlConstNotionalCrossCurrencyBasisSwapRateHelper",
             EndOfMonth,
             BaseCurrencyIndex,
             QuoteCurrencyIndex,
-            property_from<std::string>(CollateralCurve),
-            property_from<bool>(IsFxBaseCurrencyCollateralCurrency),
-            property_from<bool>(IsBasisOnFxBaseCurrencyLeg),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CollateralCurve),
+            qlap::property_from<bool>(IsFxBaseCurrencyCollateralCurrency),
+            qlap::property_from<bool>(IsBasisOnFxBaseCurrencyLeg),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7491,13 +7506,13 @@ m.def("qlDatedOISRateHelper",
     {
         return QuantLibAddinCpp::qlDatedOISRateHelper(
             ObjectId,
-            property_from_date(StartDate),
-            property_from_date(EndDate),
-            property_from<double>(FixedRate),
+            qlap::property_from_date(StartDate),
+            qlap::property_from_date(EndDate),
+            qlap::property_from<double>(FixedRate),
             ONIndex,
-            property_from<std::string>(DiscountingCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscountingCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7526,10 +7541,10 @@ m.def("qlDepositRateHelper",
     {
         return QuantLibAddinCpp::qlDepositRateHelper(
             ObjectId,
-            property_from<double>(Rate),
+            qlap::property_from<double>(Rate),
             IborIndex,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7560,15 +7575,15 @@ m.def("qlDepositRateHelper2",
     {
         return QuantLibAddinCpp::qlDepositRateHelper2(
             ObjectId,
-            property_from<double>(Rate),
+            qlap::property_from<double>(Rate),
             Tenor,
             FixingDays,
             Calendar,
             Convention,
             EndOfMonth,
             DayCounter,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7612,23 +7627,23 @@ m.def("qlFixedRateBondHelper",
     {
         return QuantLibAddinCpp::qlFixedRateBondHelper(
             ObjectId,
-            property_from<double>(Price),
+            qlap::property_from<double>(Price),
             SettlementDays,
-            property_from<double>(FaceAmount),
+            qlap::property_from<double>(FaceAmount),
             ScheduleID,
             Coupons,
             DayCounter,
-            property_from<std::string>(PaymentBDC),
-            property_from<double>(Redemption),
-            property_from_date(IssueDate),
+            qlap::property_from<std::string>(PaymentBDC),
+            qlap::property_from<double>(Redemption),
+            qlap::property_from_date(IssueDate),
             PaymentCalendar,
             ExCouponPeriod,
             ExCouponCalendar,
             ExCouponBDC,
             ExCouponEndOfMonth,
-            property_from<bool>(UseCleanPrice),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(UseCleanPrice),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7670,13 +7685,13 @@ m.def("qlFraRateHelper",
     {
         return QuantLibAddinCpp::qlFraRateHelper(
             ObjectId,
-            property_from<double>(Rate),
+            qlap::property_from<double>(Rate),
             PeriodToStart,
             IborIndex,
-            property_from<std::string>(PillarDate),
-            property_from_date(CustomPillarDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(PillarDate),
+            qlap::property_from_date(CustomPillarDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7713,7 +7728,7 @@ m.def("qlFraRateHelper2",
     {
         return QuantLibAddinCpp::qlFraRateHelper2(
             ObjectId,
-            property_from<double>(Rate),
+            qlap::property_from<double>(Rate),
             PeriodToStart,
             LengthInMonths,
             FixingDays,
@@ -7721,10 +7736,10 @@ m.def("qlFraRateHelper2",
             Convention,
             EndOfMonth,
             DayCounter,
-            property_from<std::string>(PillarDate),
-            property_from_date(CustomPillarDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(PillarDate),
+            qlap::property_from_date(CustomPillarDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7761,13 +7776,13 @@ m.def("qlFuturesRateHelper",
     {
         return QuantLibAddinCpp::qlFuturesRateHelper(
             ObjectId,
-            property_from<double>(Price),
-            property_from<std::string>(FuturesType),
-            property_from_date(FuturesDate),
-            property_from<std::string>(IborIndex),
-            property_from<double>(ConvexityAdjQuote),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Price),
+            qlap::property_from<std::string>(FuturesType),
+            qlap::property_from_date(FuturesDate),
+            qlap::property_from<std::string>(IborIndex),
+            qlap::property_from<double>(ConvexityAdjQuote),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7803,17 +7818,17 @@ m.def("qlFuturesRateHelper2",
     {
         return QuantLibAddinCpp::qlFuturesRateHelper2(
             ObjectId,
-            property_from<double>(Price),
-            property_from<std::string>(FuturesType),
-            property_from_date(FuturesDate),
-            property_from<long>(LengthInMonths),
+            qlap::property_from<double>(Price),
+            qlap::property_from<std::string>(FuturesType),
+            qlap::property_from_date(FuturesDate),
+            qlap::property_from<long>(LengthInMonths),
             Calendar,
-            property_from<std::string>(Convention),
-            property_from<bool>(EndOfMonth),
-            property_from<std::string>(DayCounter),
-            property_from<double>(ConvexityAdjQuote),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(Convention),
+            qlap::property_from<bool>(EndOfMonth),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<double>(ConvexityAdjQuote),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7850,14 +7865,14 @@ m.def("qlFuturesRateHelper3",
     {
         return QuantLibAddinCpp::qlFuturesRateHelper3(
             ObjectId,
-            property_from<double>(Price),
-            property_from<std::string>(FuturesType),
-            property_from_date(FuturesDate),
-            property_from_date(EndDate),
-            property_from<std::string>(DayCounter),
-            property_from<double>(ConvexityAdjQuote),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Price),
+            qlap::property_from<std::string>(FuturesType),
+            qlap::property_from_date(FuturesDate),
+            qlap::property_from_date(EndDate),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<double>(ConvexityAdjQuote),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7894,8 +7909,8 @@ m.def("qlFxSwapRateHelper",
     {
         return QuantLibAddinCpp::qlFxSwapRateHelper(
             ObjectId,
-            property_from<double>(FwdPoint),
-            property_from<double>(SpotFx),
+            qlap::property_from<double>(FwdPoint),
+            qlap::property_from<double>(SpotFx),
             Tenor,
             FixingDays,
             Calendar,
@@ -7903,8 +7918,8 @@ m.def("qlFxSwapRateHelper",
             EndOfMonth,
             IsFxBaseCurrencyCollateralCurrency,
             CollateralCurve,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -7945,7 +7960,7 @@ m.def("qlIborIborBasisSwapRateHelper",
     {
         return QuantLibAddinCpp::qlIborIborBasisSwapRateHelper(
             ObjectId,
-            property_from<double>(Basis),
+            qlap::property_from<double>(Basis),
             Tenor,
             SettlDays,
             Calendar,
@@ -7953,10 +7968,10 @@ m.def("qlIborIborBasisSwapRateHelper",
             EndOfMonth,
             BaseIndex,
             OtherIndex,
-            property_from<std::string>(DiscountHandle),
-            property_from<bool>(BootstrapBaseCurve),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscountHandle),
+            qlap::property_from<bool>(BootstrapBaseCurve),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8000,7 +8015,7 @@ m.def("qlMtMCrossCurrencyBasisSwapRateHelper",
     {
         return QuantLibAddinCpp::qlMtMCrossCurrencyBasisSwapRateHelper(
             ObjectId,
-            property_from<double>(Basis),
+            qlap::property_from<double>(Basis),
             Tenor,
             SettlDays,
             Calendar,
@@ -8008,12 +8023,12 @@ m.def("qlMtMCrossCurrencyBasisSwapRateHelper",
             EndOfMonth,
             BaseCurrencyIndex,
             QuoteCurrencyIndex,
-            property_from<std::string>(CollateralCurve),
-            property_from<bool>(IsFxBaseCurrencyCollCurrency),
-            property_from<bool>(IsBasisOnFxBaseCurrencyLeg),
-            property_from<bool>(IsFxBaseCurrencyLegResettable),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CollateralCurve),
+            qlap::property_from<bool>(IsFxBaseCurrencyCollCurrency),
+            qlap::property_from<bool>(IsBasisOnFxBaseCurrencyLeg),
+            qlap::property_from<bool>(IsFxBaseCurrencyLegResettable),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8056,13 +8071,13 @@ m.def("qlOISRateHelper",
             ObjectId,
             SettlDays,
             Tenor,
-            property_from<double>(FixedRate),
+            qlap::property_from<double>(FixedRate),
             ONIndex,
-            property_from<std::string>(DiscountingCurve),
-            property_from<bool>(TelescopicValueDates),
-            property_from<std::string>(PaymentLag),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscountingCurve),
+            qlap::property_from<bool>(TelescopicValueDates),
+            qlap::property_from<long>(PaymentLag),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8100,7 +8115,7 @@ m.def("qlOvernightIborBasisSwapRateHelper",
     {
         return QuantLibAddinCpp::qlOvernightIborBasisSwapRateHelper(
             ObjectId,
-            property_from<double>(Basis),
+            qlap::property_from<double>(Basis),
             Tenor,
             SettlDays,
             Calendar,
@@ -8108,9 +8123,9 @@ m.def("qlOvernightIborBasisSwapRateHelper",
             EndOfMonth,
             BaseIndex,
             OtherIndex,
-            property_from<std::string>(DiscountHandle),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscountHandle),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8147,14 +8162,14 @@ m.def("qlOvernightIndexFutureRateHelper",
     {
         return QuantLibAddinCpp::qlOvernightIndexFutureRateHelper(
             ObjectId,
-            property_from<double>(Price),
-            property_from_date(ValueDate),
-            property_from_date(MaturityDate),
+            qlap::property_from<double>(Price),
+            qlap::property_from_date(ValueDate),
+            qlap::property_from_date(MaturityDate),
             OvernightIndex,
-            property_from<double>(ConvexityAdjustment),
-            property_from<std::string>(AveragingMethod),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(ConvexityAdjustment),
+            qlap::property_from<std::string>(AveragingMethod),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8180,7 +8195,7 @@ m.def("qlRateHelperImpliedQuote",
     {
         return QuantLibAddinCpp::qlRateHelperImpliedQuote(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -8197,7 +8212,7 @@ m.def("qlRateHelperQuoteError",
     {
         return QuantLibAddinCpp::qlRateHelperQuoteError(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -8214,7 +8229,7 @@ m.def("qlRateHelperQuoteIsValid",
     {
         return QuantLibAddinCpp::qlRateHelperQuoteIsValid(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -8231,7 +8246,7 @@ m.def("qlRateHelperQuoteName",
     {
         return QuantLibAddinCpp::qlRateHelperQuoteName(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -8248,7 +8263,7 @@ m.def("qlRateHelperQuoteValue",
     {
         return QuantLibAddinCpp::qlRateHelperQuoteValue(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -8274,15 +8289,15 @@ m.def("qlSwapRateHelper",
     {
         return QuantLibAddinCpp::qlSwapRateHelper(
             ObjectId,
-            property_from<double>(Rate),
+            qlap::property_from<double>(Rate),
             SwapIndex,
-            property_from<double>(Spread),
+            qlap::property_from<double>(Spread),
             ForwardStart,
-            property_from<std::string>(DiscountingCurve),
-            property_from<std::string>(PillarDate),
-            property_from_date(CustomPillarDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscountingCurve),
+            qlap::property_from<std::string>(PillarDate),
+            qlap::property_from_date(CustomPillarDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8324,21 +8339,21 @@ m.def("qlSwapRateHelper2",
     {
         return QuantLibAddinCpp::qlSwapRateHelper2(
             ObjectId,
-            property_from<double>(Rate),
-            property_from<long>(SettlDays),
+            qlap::property_from<double>(Rate),
+            qlap::property_from<long>(SettlDays),
             Tenor,
             Calendar,
             FixedLegFrequency,
             FixedLegConvention,
             FixedLegDayCounter,
             IborIndex,
-            property_from<double>(Spread),
+            qlap::property_from<double>(Spread),
             ForwardStart,
-            property_from<std::string>(DiscountingCurve),
-            property_from<std::string>(PillarDate),
-            property_from_date(CustomPillarDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DiscountingCurve),
+            qlap::property_from<std::string>(PillarDate),
+            qlap::property_from_date(CustomPillarDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8383,18 +8398,18 @@ m.def("qlSchedule",
     {
         return QuantLibAddinCpp::qlSchedule(
             ObjectId,
-            property_from_date(EffectiveDate),
-            property_from_date(TerminationDate),
+            qlap::property_from_date(EffectiveDate),
+            qlap::property_from_date(TerminationDate),
             Tenor,
-            property_from<std::string>(Calendar),
-            property_from<std::string>(Convention),
-            property_from<std::string>(TermDateConv),
-            property_from<std::string>(GenRule),
-            property_from<bool>(EndOfMonth),
-            property_from_date(FirstDate),
-            property_from_date(NextToLastDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(Calendar),
+            qlap::property_from<std::string>(Convention),
+            qlap::property_from<std::string>(TermDateConv),
+            qlap::property_from<std::string>(GenRule),
+            qlap::property_from<bool>(EndOfMonth),
+            qlap::property_from_date(FirstDate),
+            qlap::property_from_date(NextToLastDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8428,8 +8443,8 @@ m.def("qlScheduleFromDateVector",
         return QuantLibAddinCpp::qlScheduleFromDateVector(
             ObjectId,
             EffectiveDate,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8463,13 +8478,13 @@ m.def("qlScheduleFullInterfaceFromDateVector",
             Dates,
             IsRegular,
             Tenor,
-            property_from<std::string>(Calendar),
-            property_from<std::string>(Convention),
-            property_from<std::string>(TermDateConv),
-            property_from<std::string>(GenRule),
-            property_from<bool>(EndOfMonth),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(Calendar),
+            qlap::property_from<std::string>(Convention),
+            qlap::property_from<std::string>(TermDateConv),
+            qlap::property_from<std::string>(GenRule),
+            qlap::property_from<bool>(EndOfMonth),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8503,10 +8518,10 @@ m.def("qlScheduleTruncated",
         return QuantLibAddinCpp::qlScheduleTruncated(
             ObjectId,
             OriginalSchedule,
-            property_from_date(TruncationDate),
-            property_from<bool>(ReturnDatesBefore),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(TruncationDate),
+            qlap::property_from<bool>(ReturnDatesBefore),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8532,9 +8547,9 @@ m.def("qlSequenceStatistics",
     {
         return QuantLibAddinCpp::qlSequenceStatistics(
             ObjectId,
-            property_from<long>(Dimension),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(Dimension),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8558,9 +8573,9 @@ m.def("qlSequenceStatisticsInc",
     {
         return QuantLibAddinCpp::qlSequenceStatisticsInc(
             ObjectId,
-            property_from<long>(Dimension),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(Dimension),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8584,10 +8599,10 @@ m.def("ohObjectLoad",
     {
         return QuantLibAddinCpp::ohObjectLoad(
             Directory,
-            property_from<std::string>(Pattern),
-            property_from<bool>(Recurse),
-            property_from<bool>(Overwrite),
-            property_from<bool>(Trigger)
+            qlap::property_from<std::string>(Pattern),
+            qlap::property_from<bool>(Recurse),
+            qlap::property_from<bool>(Overwrite),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Directory"),
@@ -8608,8 +8623,8 @@ m.def("ohObjectLoadString",
     {
         return QuantLibAddinCpp::ohObjectLoadString(
             Xml,
-            property_from<bool>(Overwrite),
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Overwrite),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Xml"),
@@ -8631,9 +8646,9 @@ m.def("ohObjectSave",
         return QuantLibAddinCpp::ohObjectSave(
             ObjectList,
             Filename,
-            property_from<bool>(Overwrite),
-            property_from<bool>(IncludeGroups),
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Overwrite),
+            qlap::property_from<bool>(IncludeGroups),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectList"),
@@ -8654,8 +8669,8 @@ m.def("ohObjectSaveString",
     {
         return QuantLibAddinCpp::ohObjectSaveString(
             ObjectList,
-            property_from<bool>(Overwrite),
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Overwrite),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectList"),
@@ -8671,7 +8686,7 @@ m.def("qlSettingsEvaluationDate",
     )
     {
         return QuantLibAddinCpp::qlSettingsEvaluationDate(
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Trigger"),
@@ -8686,8 +8701,8 @@ m.def("qlSettingsSetEvaluationDate",
     )
     {
         return QuantLibAddinCpp::qlSettingsSetEvaluationDate(
-            property_from_date(EvalDate),
-            property_from<bool>(Trigger)
+            qlap::property_from_date(EvalDate),
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("EvalDate"),
@@ -8712,8 +8727,8 @@ m.def("qlHullWhite",
             YieldCurve,
             A,
             Sigma,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8745,13 +8760,13 @@ m.def("qlModelG2",
         return QuantLibAddinCpp::qlModelG2(
             ObjectId,
             YieldCurve,
-            property_from<double>(A),
-            property_from<double>(Sigma),
-            property_from<double>(B),
-            property_from<double>(Eta),
-            property_from<double>(Correlation),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(A),
+            qlap::property_from<double>(Sigma),
+            qlap::property_from<double>(B),
+            qlap::property_from<double>(Eta),
+            qlap::property_from<double>(Correlation),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8784,13 +8799,13 @@ m.def("qlVasicek",
     {
         return QuantLibAddinCpp::qlVasicek(
             ObjectId,
-            property_from<double>(R0),
-            property_from<double>(A),
-            property_from<double>(B),
-            property_from<double>(Sigma),
-            property_from<double>(Lambda),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(R0),
+            qlap::property_from<double>(A),
+            qlap::property_from<double>(B),
+            qlap::property_from<double>(Sigma),
+            qlap::property_from<double>(Lambda),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8824,15 +8839,15 @@ m.def("qlFlatSmileSection",
     {
         return QuantLibAddinCpp::qlFlatSmileSection(
             ObjectId,
-            property_from_date(OptionDate),
+            qlap::property_from_date(OptionDate),
             Volatility,
-            property_from<std::string>(DayCounter),
-            property_from_date(RefDate),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from_date(RefDate),
             AtmValue,
-            property_from<std::string>(VolatilityType),
-            property_from<double>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(VolatilityType),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8868,15 +8883,15 @@ m.def("qlInterpolatedSmileSection",
     {
         return QuantLibAddinCpp::qlInterpolatedSmileSection(
             ObjectId,
-            property_from_date(OptionDate),
+            qlap::property_from_date(OptionDate),
             Strikes,
             StdDevs,
-            property_from<double>(AtmLevel),
-            property_from<std::string>(DayCounter),
-            property_from<std::string>(VolatilityType),
-            property_from<double>(Displacement),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(AtmLevel),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(VolatilityType),
+            qlap::property_from<double>(Displacement),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -8923,26 +8938,26 @@ m.def("qlSabrInterpolatedSmileSection",
     {
         return QuantLibAddinCpp::qlSabrInterpolatedSmileSection(
             ObjectId,
-            property_from_date(OptionDate),
+            qlap::property_from_date(OptionDate),
             ForwardRate,
             Strike,
             FloatingStrike,
             AtmVolatility,
             VolatilitySpreads,
-            property_from<double>(Alpha),
-            property_from<double>(Beta),
-            property_from<double>(Nu),
-            property_from<double>(Rho),
-            property_from<bool>(AlphaIsFixed),
-            property_from<bool>(BetaIsFixed),
-            property_from<bool>(NuIsFixed),
-            property_from<bool>(RhoIsFixed),
-            property_from<bool>(VegaWeighted),
-            property_from<std::string>(EndCriteria),
-            property_from<std::string>(Method),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Alpha),
+            qlap::property_from<double>(Beta),
+            qlap::property_from<double>(Nu),
+            qlap::property_from<double>(Rho),
+            qlap::property_from<bool>(AlphaIsFixed),
+            qlap::property_from<bool>(BetaIsFixed),
+            qlap::property_from<bool>(NuIsFixed),
+            qlap::property_from<bool>(RhoIsFixed),
+            qlap::property_from<bool>(VegaWeighted),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<std::string>(Method),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9000,26 +9015,26 @@ m.def("qlSabrInterpolatedSmileSection1",
     {
         return QuantLibAddinCpp::qlSabrInterpolatedSmileSection1(
             ObjectId,
-            property_from_date(OptionDate),
-            property_from<double>(ForwardRate),
+            qlap::property_from_date(OptionDate),
+            qlap::property_from<double>(ForwardRate),
             Strike,
             FloatingStrike,
-            property_from<double>(AtmVolatility),
+            qlap::property_from<double>(AtmVolatility),
             VolatilitySpreads,
-            property_from<double>(Alpha),
-            property_from<double>(Beta),
-            property_from<double>(Nu),
-            property_from<double>(Rho),
-            property_from<bool>(AlphaIsFixed),
-            property_from<bool>(BetaIsFixed),
-            property_from<bool>(NuIsFixed),
-            property_from<bool>(RhoIsFixed),
-            property_from<bool>(VegaWeighted),
-            property_from<std::string>(EndCriteria),
-            property_from<std::string>(Method),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Alpha),
+            qlap::property_from<double>(Beta),
+            qlap::property_from<double>(Nu),
+            qlap::property_from<double>(Rho),
+            qlap::property_from<bool>(AlphaIsFixed),
+            qlap::property_from<bool>(BetaIsFixed),
+            qlap::property_from<bool>(NuIsFixed),
+            qlap::property_from<bool>(RhoIsFixed),
+            qlap::property_from<bool>(VegaWeighted),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<std::string>(Method),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9077,20 +9092,20 @@ m.def("qlSabrSmileSection",
             OptionTime,
             Strikes,
             StdDevs,
-            property_from<double>(Forward),
-            property_from<double>(Alpha),
-            property_from<double>(Beta),
-            property_from<double>(Nu),
-            property_from<double>(Rho),
-            property_from<bool>(AlphaIsFixed),
-            property_from<bool>(BetaIsFixed),
-            property_from<bool>(NuIsFixed),
-            property_from<bool>(RhoIsFixed),
-            property_from<bool>(VegaWeighted),
-            property_from<std::string>(EndCriteria),
-            property_from<std::string>(Method),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Forward),
+            qlap::property_from<double>(Alpha),
+            qlap::property_from<double>(Beta),
+            qlap::property_from<double>(Nu),
+            qlap::property_from<double>(Rho),
+            qlap::property_from<bool>(AlphaIsFixed),
+            qlap::property_from<bool>(BetaIsFixed),
+            qlap::property_from<bool>(NuIsFixed),
+            qlap::property_from<bool>(RhoIsFixed),
+            qlap::property_from<bool>(VegaWeighted),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<std::string>(Method),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9131,8 +9146,8 @@ m.def("qlIncrementalStatistics",
             ObjectId,
             Values,
             Weights,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9160,8 +9175,8 @@ m.def("qlStatistics",
             ObjectId,
             Values,
             Weights,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9194,11 +9209,11 @@ m.def("qlMakeCms",
             SwapTenor,
             SwapIndex,
             IborIndex,
-            property_from<std::string>(IborSpread),
+            qlap::property_from<double>(IborSpread),
             ForwardStart,
             CmsCouponPricer,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9230,8 +9245,8 @@ m.def("qlSwap",
             ObjectId,
             LegIDs,
             Payer,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9261,10 +9276,10 @@ m.def("qlMakeSwaption",
             ObjectId,
             SwapIndex,
             OptionTenor,
-            property_from<std::string>(Strike),
+            qlap::property_from<double>(Strike),
             PricingEngineID,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9296,8 +9311,8 @@ m.def("qlSwaption",
             VanillaSwap,
             Exercise,
             SettlementType,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9327,13 +9342,13 @@ m.def("qlConstantSwaptionVolatility",
     {
         return QuantLibAddinCpp::qlConstantSwaptionVolatility(
             ObjectId,
-            property_from<long>(NDays),
+            qlap::property_from<long>(NDays),
             Calendar,
             BusinessDayConvention,
-            property_from<double>(Volatility),
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Volatility),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9361,9 +9376,9 @@ m.def("qlRelinkableHandleSwaptionVolatilityStructure",
     {
         return QuantLibAddinCpp::qlRelinkableHandleSwaptionVolatilityStructure(
             ObjectId,
-            property_from<std::string>(CurrentLink),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CurrentLink),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9390,10 +9405,10 @@ m.def("qlSmileSectionByCube",
         return QuantLibAddinCpp::qlSmileSectionByCube(
             ObjectId,
             VolCube,
-            property_from_date(OptionDate),
+            qlap::property_from_date(OptionDate),
             SwapTenor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9424,8 +9439,8 @@ m.def("qlSmileSectionByCube2",
             VolCube,
             OptionDate,
             SwapTenor,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9453,9 +9468,9 @@ m.def("qlSpreadedSwaptionVolatility",
         return QuantLibAddinCpp::qlSpreadedSwaptionVolatility(
             ObjectId,
             BaseVolStructure,
-            property_from<double>(Spread),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9490,9 +9505,9 @@ m.def("qlSwaptionVTSMatrix",
             OptionTenors,
             SwapTenors,
             Volatilities,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9541,15 +9556,15 @@ m.def("qlSwaptionVolCube1",
             SpreadVols,
             SwapIndexBase,
             ShortSwapIndexBase,
-            property_from<bool>(VegaWeightedSmileFit),
+            qlap::property_from<bool>(VegaWeightedSmileFit),
             Guess,
             IsFixed,
             IsAtmCalibrated,
-            property_from<std::string>(EndCriteria),
-            property_from<double>(MaxErrorTol),
-            property_from<std::string>(OptMethod),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(EndCriteria),
+            qlap::property_from<double>(MaxErrorTol),
+            qlap::property_from<std::string>(OptMethod),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9600,9 +9615,9 @@ m.def("qlSwaptionVolCube2",
             SpreadVols,
             SwapIndexBase,
             ShortSwapIndexBase,
-            property_from<bool>(VegaWeightedSmileFit),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(VegaWeightedSmileFit),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9637,9 +9652,9 @@ m.def("qlDiscountCurve",
             ObjectId,
             CurveDates,
             CurveDiscounts,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9670,14 +9685,14 @@ m.def("qlFlatForward",
     {
         return QuantLibAddinCpp::qlFlatForward(
             ObjectId,
-            property_from<long>(NDays),
-            property_from<std::string>(Calendar),
-            property_from<double>(Rate),
-            property_from<std::string>(DayCounter),
-            property_from<std::string>(Compounding),
-            property_from<std::string>(Frequency),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<long>(NDays),
+            qlap::property_from<std::string>(Calendar),
+            qlap::property_from<double>(Rate),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(Compounding),
+            qlap::property_from<std::string>(Frequency),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9710,9 +9725,9 @@ m.def("qlForwardCurve",
             ObjectId,
             CurveDates,
             ForwardYields,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9740,9 +9755,9 @@ m.def("qlForwardSpreadedTermStructure",
         return QuantLibAddinCpp::qlForwardSpreadedTermStructure(
             ObjectId,
             BaseYieldCurve,
-            property_from<double>(Spread),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<double>(Spread),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9769,9 +9784,9 @@ m.def("qlImpliedTermStructure",
         return QuantLibAddinCpp::qlImpliedTermStructure(
             ObjectId,
             BaseYieldCurve,
-            property_from_date(ReferenceDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(ReferenceDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9808,15 +9823,15 @@ m.def("qlInterpolatedYieldCurve",
             Dates,
             Data,
             Calendar,
-            property_from<std::string>(DayCounter),
+            qlap::property_from<std::string>(DayCounter),
             Jumps,
             JumpDates,
-            property_from<std::string>(TraitsID),
-            property_from<std::string>(InterpolatorID),
-            property_from<std::string>(MixedInterpolationBehavior),
-            property_from<long>(NRateHelper),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(TraitsID),
+            qlap::property_from<std::string>(InterpolatorID),
+            qlap::property_from<std::string>(MixedInterpolationBehavior),
+            qlap::property_from<long>(NRateHelper),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9849,9 +9864,9 @@ m.def("qlRelinkableHandleYieldTermStructure",
     {
         return QuantLibAddinCpp::qlRelinkableHandleYieldTermStructure(
             ObjectId,
-            property_from<std::string>(CurrentLink),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(CurrentLink),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9872,7 +9887,7 @@ m.def("qlTermStructureMaxDate",
     {
         return QuantLibAddinCpp::qlTermStructureMaxDate(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -9889,7 +9904,7 @@ m.def("qlTermStructureReferenceDate",
     {
         return QuantLibAddinCpp::qlTermStructureReferenceDate(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -9906,7 +9921,7 @@ m.def("qlTermStructureSettlementDays",
     {
         return QuantLibAddinCpp::qlTermStructureSettlementDays(
             ObjectId,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -9930,9 +9945,9 @@ m.def("qlZeroCurve",
             ObjectId,
             CurveDates,
             CurveYields,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9961,8 +9976,8 @@ m.def("qlTimeSeries",
             ObjectId,
             Dates,
             Values,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -9982,7 +9997,7 @@ m.def("qlAddinVersion",
     )
     {
         return QuantLibAddinCpp::qlAddinVersion(
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Trigger"),
@@ -9996,7 +10011,7 @@ m.def("qlVersion",
     )
     {
         return QuantLibAddinCpp::qlVersion(
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("Trigger"),
@@ -10014,7 +10029,7 @@ m.def("ohObjectPropertyValues2",
         return QuantLibAddinCpp::ohObjectPropertyValues2(
             ObjectId,
             PropertyName,
-            property_from<bool>(Trigger)
+            qlap::property_from<bool>(Trigger)
         );
     },
     py::arg("ObjectId"),
@@ -10043,13 +10058,13 @@ m.def("qlMakeIMMSwap",
             ObjectId,
             SwapTenor,
             IborIndex,
-            property_from<std::string>(FixedRate),
-            property_from_date(FirstImmDate),
-            property_from<std::string>(FixDayCounter),
-            property_from<std::string>(Spread),
+            qlap::property_from<double>(FixedRate),
+            qlap::property_from_date(FirstImmDate),
+            qlap::property_from<std::string>(FixDayCounter),
+            qlap::property_from<double>(Spread),
             PricingEngineID,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10086,16 +10101,16 @@ m.def("qlMakeVanillaSwap",
     {
         return QuantLibAddinCpp::qlMakeVanillaSwap(
             ObjectId,
-            property_from<std::string>(SettlDays),
+            qlap::property_from<long>(SettlDays),
             SwapTenor,
             IborIndex,
-            property_from<std::string>(FixedRate),
+            qlap::property_from<double>(FixedRate),
             ForwardStart,
-            property_from<std::string>(FixDayCounter),
-            property_from<std::string>(Spread),
+            qlap::property_from<std::string>(FixDayCounter),
+            qlap::property_from<double>(Spread),
             PricingEngineID,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10135,18 +10150,18 @@ m.def("qlVanillaSwap",
     {
         return QuantLibAddinCpp::qlVanillaSwap(
             ObjectId,
-            property_from<std::string>(PayerReceiver),
-            property_from<double>(Nominal),
+            qlap::property_from<std::string>(PayerReceiver),
+            qlap::property_from<double>(Nominal),
             FixSchedule,
-            property_from<std::string>(FixedRate),
+            qlap::property_from<double>(FixedRate),
             FixDayCounter,
             FloatingLegSchedule,
             IborIndex,
-            property_from<std::string>(Spread),
+            qlap::property_from<double>(Spread),
             FloatingLegDayCounter,
-            property_from<std::string>(PaymentConvention),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(PaymentConvention),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10181,9 +10196,9 @@ m.def("qlVanillaSwapFromSwapIndex",
         return QuantLibAddinCpp::qlVanillaSwapFromSwapIndex(
             ObjectId,
             SwapIndex,
-            property_from_date(FixingDate),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from_date(FixingDate),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10209,8 +10224,8 @@ m.def("qlVanillaSwapFromSwapRateHelper",
         return QuantLibAddinCpp::qlVanillaSwapFromSwapRateHelper(
             ObjectId,
             SwapRateHelper,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10237,12 +10252,12 @@ m.def("qlBlackConstantVol",
     {
         return QuantLibAddinCpp::qlBlackConstantVol(
             ObjectId,
-            property_from_date(SettlementDate),
+            qlap::property_from_date(SettlementDate),
             Calendar,
             Volatility,
-            property_from<std::string>(DayCounter),
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<std::string>(DayCounter),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10278,8 +10293,8 @@ m.def("qlMarketModelLmExtLinearExponentialVolModel",
             B,
             C,
             D,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
@@ -10312,14 +10327,14 @@ m.def("qlPiecewiseConstantAbcdVariance",
     {
         return QuantLibAddinCpp::qlPiecewiseConstantAbcdVariance(
             ObjectId,
-            property_from<double>(A),
-            property_from<double>(B),
-            property_from<double>(C),
-            property_from<double>(D),
+            qlap::property_from<double>(A),
+            qlap::property_from<double>(B),
+            qlap::property_from<double>(C),
+            qlap::property_from<double>(D),
             ResetIndex,
             RateTimes,
-            property_from<bool>(Permanent),
-            property_from<bool>(Trigger),
+            qlap::property_from<bool>(Permanent),
+            qlap::property_from<bool>(Trigger),
             Overwrite
         );
     },
