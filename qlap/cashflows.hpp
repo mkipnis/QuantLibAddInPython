@@ -36,10 +36,10 @@ json::value handle_cashflow(const T& cashflow)
         if (const auto* coupon =
                 dynamic_cast<const QuantLib::FixedRateCoupon*>(&cf))
         {
-            cashflow_out["type"] = "fixed_rate_coupon";
-            cashflow_out["accrual_start_date"] =
+            cashflow_out["type"] = "FixedRateCoupon";
+            cashflow_out["accrualStartDate"] =
                 coupon->accrualStartDate().serialNumber();
-            cashflow_out["accrual_end_date"] =
+            cashflow_out["accrualEndDate"] =
                 coupon->accrualEndDate().serialNumber();
             cashflow_out["amount"] = coupon->amount();
             cashflow_out["rate"] = coupon->rate();
@@ -49,28 +49,28 @@ json::value handle_cashflow(const T& cashflow)
                          const QuantLib::OvernightIndexedCoupon*
                      >(&cf))
         {
-            cashflow_out["type"] = "overnight_indexed_coupon";
-            cashflow_out["accrual_start_date"] =
+            cashflow_out["type"] = "OvernightIndexedCoupon";
+            cashflow_out["accrualStartDate"] =
                 coupon->accrualStartDate().serialNumber();
-            cashflow_out["accrual_end_date"] =
+            cashflow_out["accrualEndDate"] =
                 coupon->accrualEndDate().serialNumber();
-            cashflow_out["fixing_date"] =
+            cashflow_out["fixingDate"] =
                 coupon->fixingDate().serialNumber();
-            cashflow_out["accrual_period"] = coupon->accrualPeriod();
+            cashflow_out["accrualPeriod"] = coupon->accrualPeriod();
             cashflow_out["spread"] = coupon->spread();
             cashflow_out["amount"] = coupon->amount();
         }
         else if (const auto* redemption =
                      dynamic_cast<const QuantLib::Redemption*>(&cf))
         {
-            cashflow_out["type"] = "redemption";
+            cashflow_out["type"] = "Redemption";
             cashflow_out["date"] = redemption->date().serialNumber();
             cashflow_out["amount"] = redemption->amount();
         }
         else if (const auto* simple_cashflow =
                      dynamic_cast<const QuantLib::SimpleCashFlow*>(&cf))
         {
-            cashflow_out["type"] = "simple_cashflow";
+            cashflow_out["type"] = "SimpleCashFlow";
             cashflow_out["date"] =
                 simple_cashflow->date().serialNumber();
             cashflow_out["amount"] = simple_cashflow->amount();

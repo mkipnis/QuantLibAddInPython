@@ -4294,6 +4294,26 @@ m.def("qlSABRInterpolation",
     "XArray: x array.\nYArray: y array.\nExpiry: expiry time in years.\nForward: at-the-money forward rate.\nAlpha: alpha (fixed value or guess).\nBeta: beta (fixed value or guess).\nNu: nu (fixed value or guess).\nRho: rho (fixed value or guess).\nAlphaIsFixed: TRUE if the alpha value provided is to be kept fixed, FALSE if it is just a guess.\nBetaIsFixed: TRUE if the beta value provided is to be kept fixed, FALSE if it is just a guess.\nNuIsFixed: TRUE if the nu value provided is to be kept fixed, FALSE if it is just a guess.\nRhoIsFixed: TRUE if the rho value provided is to be kept fixed, FALSE if it is just a guess.\nVegaWeighted: TRUE if the interpolation is weighted using options Vega.\nEndCriteria: EndCriteria object ID.\nOptimizationMeth: OptimizationMethod object ID."
 );
 
+m.def("qlYieldTermStructureEnableExtrapolation",
+
+    [](
+        std::string & ObjectId,
+        py::object ExtrapolationFlag,
+        py::object Trigger
+    )
+    {
+        return QuantLibAddinCpp::qlYieldTermStructureEnableExtrapolation(
+            ObjectId,
+            qlap::property_from<bool>(ExtrapolationFlag),
+            qlap::property_from<bool>(Trigger)
+        );
+    },
+    py::arg("ObjectId"),
+    py::arg("ExtrapolationFlag"),
+    py::arg("Trigger"),
+    "Sets the enable extrapolation flag to the given Extrapolator(YieldTermStructure) object.\n\nExtrapolationFlag: global extrapolation flag."
+);
+
 m.def("qlInterestRate",
 
     [](

@@ -17,7 +17,12 @@ inline json::value qlAddinCalculate( const std::string& ObjectId, const json::va
     if (!input.is_object())
         throw std::invalid_argument("Expected a JSON object");
 
-    registerDefaultHandlers();
+    static std::once_flag register_flag;
+
+    std::call_once(register_flag, []()
+    {
+        registerDefaultHandlers();
+    });
 
     InstrumentPtr instrument;
 

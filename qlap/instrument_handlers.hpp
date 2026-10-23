@@ -158,7 +158,7 @@ inline void registerDefaultHandlers()
             [](const InstrumentPtr& instrument, const json::value& input)
             {
 
-                boost::shared_ptr<QuantLib::FixedRateBond> bond_ptr;
+                boost::shared_ptr<QuantLib::Bond> bond_ptr;
                 instrument->getLibraryObject(bond_ptr);
                 
                 auto daycounter = get_or_default<std::string>(input.as_object(), "DayCounter", "Actual/365 (Fixed)");

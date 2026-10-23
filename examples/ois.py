@@ -116,6 +116,8 @@ def main():
             Overwrite=False,
         )
 
+        qla.qlYieldTermStructureEnableExtrapolation(curve, True, True)
+
         engine = qla.qlDiscountingSwapEngine(
             "DiscountingSwapEngine",
             curve,  # YieldCurve
@@ -133,7 +135,7 @@ def main():
         ois_swap = qla.qlMakeOIS(
             ObjectId = "my_ois",
             SettlDays = 2,
-            SwapTenor = "3Y",
+            SwapTenor = "50Y",
             OvernightIndex = sofr_index_with_curve,
             FixedRate = 0.03,
             ForwardStart = "0D",
