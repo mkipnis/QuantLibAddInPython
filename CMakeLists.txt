@@ -20,6 +20,7 @@ set(QL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(QL_BUILD_TEST_SUITE OFF CACHE BOOL "" FORCE)
 set(QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN ON CACHE BOOL "" FORCE)
 set(QL_ENABLE_SESSIONS ON CACHE BOOL "" FORCE)
+
 set(BUILD_SHARED_LIBS OFF CACHE BOOL
     "Build dependencies as static libraries" FORCE)
 
@@ -99,14 +100,14 @@ if(NOT TARGET ohlib)
 endif()
 
 # -----------------------------------------------------------------------
-# Helper implementation files
+# Discover QLAP source and header files recursively
 # -----------------------------------------------------------------------
 
-file(GLOB QLAP_SOURCES CONFIGURE_DEPENDS
+file(GLOB_RECURSE QLAP_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/qlap/*.cpp"
 )
 
-file(GLOB QLAP_HEADERS CONFIGURE_DEPENDS
+file(GLOB_RECURSE QLAP_HEADERS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/qlap/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/qlap/*.hpp"
 )
@@ -138,8 +139,8 @@ target_include_directories(
     PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/qlap"
     "${CMAKE_CURRENT_SOURCE_DIR}/bindings"
-    "${quantlibaddin_repo_SOURCE_DIR}/QuantLibAddin/Addins/Cpp"
-    "${quantlibaddin_repo_SOURCE_DIR}/QuantLibAddin"
+    "${quantlibaddin_repo_SOURCE_DIR}/QuantLibAddIn/Addins/Cpp"
+    "${quantlibaddin_repo_SOURCE_DIR}/QuantLibAddIn"
     "${quantlibaddin_repo_SOURCE_DIR}/ObjectHandler"
 )
 
@@ -176,5 +177,4 @@ install(
     LIBRARY DESTINATION .
     RUNTIME DESTINATION .
 )
-
 
