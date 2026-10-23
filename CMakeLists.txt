@@ -33,6 +33,13 @@ find_package(
     COMPONENTS Interpreter Development.Module
 )
 
+if(WIN32)
+    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_RUNTIME OFF)
+elseif(UNIX AND NOT APPLE)
+    set(Boost_USE_STATIC_LIBS OFF)
+endif()
+
 find_package(Boost 1.80.0 REQUIRED COMPONENTS json)
 
 # -----------------------------------------------------------------------
