@@ -89,6 +89,23 @@ jobs:
           git --version
           cmake --version
 
+      - name: Diagnose Windows Boost configuration
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "BOOST_ROOT=$env:BOOST_ROOT"
+
+          if (-not (Test-Path "$env:BOOST_ROOT\include\boost")) {
+            throw "Boost headers are missing."
+          }
+
+          Write-Host "Boost libraries:"
+          Get-ChildItem "$env:BOOST_ROOT\lib" -ErrorAction SilentlyContinue |
+            Select-Object -First 30 -ExpandProperty Name
+
+          Write-Host "Boost CMake package files:"
+          Get-ChildItem "$env:BOOST_ROOT\share\boost" -ErrorAction SilentlyContinue
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -138,8 +155,8 @@ jobs:
 
           # Static Boost libraries with the dynamic MSVC runtime.
           CIBW_ENVIRONMENT_WINDOWS: >-
-            BOOST_ROOT=%BOOST_ROOT%
-            CMAKE_ARGS="-DBoost_ROOT=%BOOST_ROOT% -DBoost_USE_STATIC_LIBS=ON -DBoost_USE_STATIC_RUNTIME=OFF"
+            BOOST_ROOT=$BOOST_ROOT
+            CMAKE_ARGS="-DBoost_ROOT=$BOOST_ROOT -DBoost_USE_STATIC_LIBS=ON -DBoost_USE_STATIC_RUNTIME=OFF -DBoost_USE_DEBUG_RUNTIME=OFF"
 
           # Bundle non-system shared libraries into macOS wheels.
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
