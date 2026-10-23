@@ -15,11 +15,12 @@ def write_pybind_file(headers, module, bindings, output):
         "#include <vector>",
         "#include <ql/time/date.hpp>",
         "#include <oh/repository.hpp>",
-        "#include <qladdin.hpp>"
+        "#include <addincpp.hpp>",
+        "//#include <qlo/qladdin.hpp>"
     ]
 
     for header in headers:
-        lines.append(f'#include <qlo/{Path(header).name}>')
+        lines.append(f'#include <{Path(header).name}>')
 
     lines.append('#include <qlap.hpp>')
 

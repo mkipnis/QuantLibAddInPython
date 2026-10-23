@@ -33,7 +33,7 @@ build.verbose = true
 
 [tool.scikit-build.cmake.define]
 CMAKE_VERBOSE_MAKEFILE = "ON"
-Boost_USE_STATIC_LIBS = "ON"
+Boost_USE_STATIC_LIBS = "OFF"
 Boost_USE_STATIC_RUNTIME = "OFF"
 
 [tool.cibuildwheel]
