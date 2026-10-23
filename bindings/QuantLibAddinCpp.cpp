@@ -6,7 +6,7 @@
 #include <vector>
 #include <ql/time/date.hpp>
 #include <oh/repository.hpp>
-#include <qlo/qladdin.hpp>
+#include <Addins/Cpp/qladdin.hpp>
 #include <qlo/abcd.hpp>
 #include <qlo/accountingengines.hpp>
 #include <qlo/addincpp.hpp>
