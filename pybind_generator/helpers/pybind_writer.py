@@ -15,7 +15,7 @@ def write_pybind_file(headers, module, bindings, output):
         "#include <vector>",
         "#include <ql/time/date.hpp>",
         "#include <oh/repository.hpp>",
-        "#include <Addins/Cpp/qladdin.hpp>"
+        "#include <qladdin.hpp>"
     ]
 
     for header in headers:
