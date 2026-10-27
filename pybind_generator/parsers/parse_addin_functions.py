@@ -1,4 +1,5 @@
-# Copyright (c) Mike Kipnis
+# Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+
 from pathlib import Path
 import xml.etree.ElementTree as ET
 

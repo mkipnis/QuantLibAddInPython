@@ -1,4 +1,4 @@
-# Copyright (c) Mike Kipnis
+# Copyright (c) 2026 Mike Kipnis — QuantLibAddin [Python]
 
 import re
 

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
 
 #pragma once
 
@@ -15,20 +16,16 @@
 namespace QuantLibAddinPython
 {
 
-inline json::value qlAddinCalculate(
-    const std::string& ObjectId,
-    const json::value& input)
+inline json::value qlAddinCalculate( const std::string& ObjectId, const json::value& input)
 {
     if (!input.is_object())
-        throw std::invalid_argument(
-            "Expected a JSON object");
+        throw std::invalid_argument("Expected a JSON object");
 
     registerDefaultHandlers();
 
     InstrumentPtr instrument;
 
-    ObjectHandler::Repository::instance().retrieveObject(
-        instrument, ObjectId);
+    ObjectHandler::Repository::instance().retrieveObject( instrument, ObjectId );
 
     return dispatchInstrument(instrument, input);
 }

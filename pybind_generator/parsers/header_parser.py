@@ -1,4 +1,4 @@
-# Copyright (c) Mike Kipnis
+# Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
 
 import tree_sitter_cpp as tscpp
 from tree_sitter import Language, Parser

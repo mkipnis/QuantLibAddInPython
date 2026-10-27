@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
 
 #include <handlers/ois_handler.hpp>
 
@@ -9,17 +10,13 @@
 namespace QuantLibAddinPython
 {
 
-json::value handleOIS(
-    const InstrumentPtr& instrument,
-    const json::value& input)
+json::value handleOIS( const InstrumentPtr& instrument, const json::value& input)
 {
     boost::shared_ptr<QuantLib::OvernightIndexedSwap> ois;
     instrument->getLibraryObject(ois);
 
     if (!ois)
-        throw std::runtime_error(
-            "Unable to retrieve OvernightIndexedSwap"
-        );
+        throw std::runtime_error("Unable to retrieve OvernightIndexedSwap");
 
     json::object results;
 
