@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
 
 #pragma once
 
@@ -5,9 +6,5 @@
 
 namespace QuantLibAddinPython
 {
-
-json::value handleOIS(
-    const InstrumentPtr& instrument,
-    const json::value& input);
-
+    json::value handleOIS( const InstrumentPtr& instrument, const json::value& input);
 }

@@ -1,8 +1,8 @@
-import json
+# Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+
 from pprint import pprint
 
 import quantlib_addin as qla
-from quantlib_addin import qlPiecewiseYieldCurve
 
 
 def main():
@@ -14,9 +14,6 @@ def main():
         print("QuantLibAddin version =", qla.qlAddinVersion(False))
         print("ObjectHandler version =", qla.ohVersion(False))
 
-        # ------------------------------------------------------------
-        # Set the evaluation date to 1 January 2011
-        # ------------------------------------------------------------
         evaluation_date = 40546
 
         qla.qlSettingsSetEvaluationDate( evaluation_date, False,)
@@ -24,6 +21,21 @@ def main():
         sofr_index = qla.qlOvernightIndex("ois_index", "SOFR", 2, "USD", "TARGET", "Act/Act", "", False, False, False)
 
         rate_helpers = []
+
+        fixing_dates = [
+            qla.Property(evaluation_date-3),
+            qla.Property(evaluation_date),
+        ]
+
+        fixing_values = [0.009, 0.01]
+
+        qla.qlIndexAddFixings(
+            "ois_index",
+            fixing_dates,
+            fixing_values,
+            True,
+            False,
+        )
 
         ois_1Y = qla.qlOISRateHelper(
             ObjectId="OIS_1Y",
@@ -110,7 +122,7 @@ def main():
             Jumps=[],
             JumpDates=[],
             TraitsID="Discount",
-            InterpolatorID="Linear",
+            InterpolatorID="LogLinear",
             Permanent=False,
             Trigger=False,
             Overwrite=False,
@@ -155,11 +167,63 @@ def main():
 
         npv = qla.qlInstrumentNPV(ois_swap, False)
 
-        results = qla.qlAddinCalculate(ois_swap, {})
+        results = qla.qlAddinCalculate(ois_swap)
 
         pprint(results, indent=4, sort_dicts=False)
 
-        print(npv)
+        forward_start = [
+            '0D', '1M', '3M', '6M', '1Y', '3Y', '5Y',
+            '7Y', '10Y', '15Y', '20Y', '25Y', '30Y'
+        ]
+
+        swap_tenor = ['1Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y', '25Y', '30Y']
+
+        # Store results: rates[start][tenor]
+        rates = {}
+
+        for start in forward_start:
+            rates[start] = {}
+
+            for tenor in swap_tenor:
+                ticker = start + "x" + tenor
+
+                ois_swap = qla.qlMakeOIS(
+                    ObjectId=ticker,
+                    SettlDays=2,
+                    SwapTenor=tenor,
+                    OvernightIndex=sofr_index_with_curve,
+                    FixedRate=0.000001,
+                    ForwardStart=start,
+                    FixDayCounter="Act/Act",
+                    Spread=0.0,
+                    PaymentLag=0,
+                    Permanent=False,
+                    Trigger=False,
+                    Overwrite=False
+                )
+
+                qla.qlInstrumentSetPricingEngine(ois_swap, engine, False)
+
+                results = qla.qlAddinCalculate(ois_swap)
+                rates[start][tenor] = results['results']['fairRate']
+
+        # Print table
+        column_width = 10
+
+        header = f"{'Forward':>{column_width}}"
+        for tenor in swap_tenor:
+            header += f"{tenor:>{column_width}}"
+
+        print(header)
+        print("-" * len(header))
+
+        for start in forward_start:
+            row = f"{start:>{column_width}}"
+            for tenor in swap_tenor:
+                # Display as percentage
+                rate = rates[start][tenor] * 100
+                row += f"{rate:>{column_width}.4f}"
+            print(row)
 
     except Exception as e:
         print("Error:", e)

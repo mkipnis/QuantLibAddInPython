@@ -1,3 +1,4 @@
+
 name: Build Python Wheels
 
 on:
@@ -165,8 +166,13 @@ jobs:
 
           # Linux uses cibuildwheel's default auditwheel repair command.
 
+          # Smoke test: import, initialize, and check version APIs.
           CIBW_TEST_COMMAND: >-
-            python -c "import quantlib_addin; print(quantlib_addin.__file__)"
+            python -c "import quantlib_addin as qla;
+            qla.initializeAddin();
+            assert qla.qlAddinVersion(False);
+            assert qla.ohVersion(False);
+            print('QuantLibAddin smoke test passed')"
 
       - name: Inspect macOS native libraries
         if: runner.os == 'macOS' && always()
@@ -191,4 +197,104 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
+          if-no-files-found: error
           retention-days: 14
+
+  gather-wheels:
+    name: Gather wheels from all platforms
+    runs-on: ubuntu-24.04
+    needs: build-wheels
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Inspect distributions
+        shell: bash
+        run: |
+          echo "Collected distributions:"
+          ls -lh dist/
+
+          if ! compgen -G "dist/*.whl" > /dev/null; then
+            echo "ERROR: No wheel files found."
+            exit 1
+          fi
+
+      - name: Upload merged wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-wheels
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  pypi-publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-24.04
+    needs: gather-wheels
+
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: read
+      id-token: write
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/quantlib-addin
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+
+          with open("pyproject.toml", "rb") as f:
+              project = tomllib.load(f)["project"]
+
+          package_name = project["name"]
+          package_version = project["version"]
+          tag_version = os.environ["RELEASE_TAG"].removeprefix("v")
+
+          print(f"Package: {package_name}")
+          print(f"Package version: {package_version}")
+          print(f"Git tag version: {tag_version}")
+
+          if package_name.lower().replace("_", "-") != "quantlib-addin":
+              raise SystemExit(
+                  f"Unexpected package name: {package_name}"
+              )
+
+          if package_version != tag_version:
+              raise SystemExit(
+                  "ERROR: Git tag does not match pyproject.toml version."
+              )
+          PY
+
+      - name: Retrieve merged wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: merged-wheels
+          path: dist/
+
+      - name: Check distributions
+        run: |
+          python -m pip install --upgrade twine
+          python -m twine check dist/*
+
+      - name: Publish wheels to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

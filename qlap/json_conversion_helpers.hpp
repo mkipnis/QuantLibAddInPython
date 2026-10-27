@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+
 #pragma once
 
 #include <boost/json.hpp>

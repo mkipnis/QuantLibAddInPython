@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+
 from pprint import pprint
 
 import quantlib_addin as qla
@@ -59,7 +61,7 @@ def main():
         )
 
         engine = qla.qlBondEngine(
-            "DiscountingSwapEngine",
+            "DiscountingBondEngine",
             flat_forward,  # YieldCurve
             False,  # Permanent
             False,  # Trigger
@@ -128,8 +130,8 @@ def main():
             False,  # Overwrite
         )
 
-        sofr_index_with_curve = qla.qlOvernightIndex("ois_index_with_curve",
-                                                     "SOFR", 2, "USD", "TARGET", "Act/Act", flat_forward_sofr, False, False, False)
+        qla.qlOvernightIndex("ois_index_with_curve", "SOFR", 2, "USD", "TARGET", "Act/Act",
+                                flat_forward_sofr, False, False, False)
 
         zspread_setup = {'price':100.015625, 'zcurve': flat_forward_sofr}
         zspread = qla.qlAddinCalculate(fixed_rate_bond, zspread_setup)

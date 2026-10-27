@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+
 #include <register_handlers.hpp>
 
 #include <instrument_handlers.hpp>
@@ -11,7 +13,6 @@
 #include <qlo/overnightindexedswap.hpp>
 #include <qlo/bonds.hpp>
 
-
 #include <mutex>
 
 namespace QuantLibAddinPython
@@ -24,15 +25,9 @@ void registerDefaultHandlers()
     std::call_once(flag, []()
     {
         // Register generic handler first.
-        registerInstrumentHandler<QuantLibAddin::Instrument>(
-            handleGenericInstrument);
-
-        registerInstrumentHandler<
-            QuantLibAddin::OvernightIndexedSwap>(
-                handleOIS);
-
-        registerInstrumentHandler<QuantLibAddin::Bond>(
-            handleBond);
+        registerInstrumentHandler<QuantLibAddin::Instrument>( handleGenericInstrument );
+        registerInstrumentHandler<QuantLibAddin::OvernightIndexedSwap>( handleOIS );
+        registerInstrumentHandler<QuantLibAddin::Bond>( handleBond );
     });
 }
 
