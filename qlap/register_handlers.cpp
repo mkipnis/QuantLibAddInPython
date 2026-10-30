@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+// Copyright (c) 2026 Mike Kipnis — QuantLibAddIn/Python
 
 #include <register_handlers.hpp>
 

@@ -1,4 +1,6 @@
-## QuantLibAddIn [Python]
+## QuantLibAddIn/Python
+
+
 
 ### Linux/Mac
 ```
@@ -34,4 +36,4 @@ python -m pip install .\dist\quantlib_addin-0.1.0-cp313-cp313-win_amd64.whl --fo
 ### To Regenerate Bindings - Example
 export PYTHONPATH=$PYTHONPATH:pybind_generator
 
-python pybind_generator/generate_pybind_bindings.py ./build/cp312-cp312-linux_x86_64/_deps/quantlibaddin_repo-src/QuantLibAddin/Addins/Cpp bindings/QuantLibAddinCpp.cpp --object-handler-function-dir ./build/cp312-cp312-linux_x86_64/_deps/quantlibaddin_repo-src/ObjectHandler/gensrc/metadata/functions/ --quantlib-addin-function-dir ./build/cp312-cp312-linux_x86_64/_deps/quantlibaddin_repo-src/QuantLibAddin/gensrc/metadata/functions/
+python pybind_generator/generate_pybind_bindings.py \${QUANTLIB_ADDIN_HOME}/QuantLibAddin/Addins/Cpp bindings/QuantLibAddinCpp.cpp --object-handler-function-dir \${QUANTLIB_ADDIN_HOME}/ObjectHandler/gensrc/metadata/functions/ --quantlib-addin-function-dir ${QUANTLIB_ADDIN_HOME}/QuantLibAddin/gensrc/metadata/functions/

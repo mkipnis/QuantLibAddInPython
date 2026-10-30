@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Mike Kipnis — QuantLibAddIn [Python]
+# Copyright (c) 2026 Mike Kipnis — QuantLibAddIn/Python
 
 from pprint import pprint
 
@@ -166,64 +166,11 @@ def main():
         )
 
         npv = qla.qlInstrumentNPV(ois_swap, False)
+        print(f"OIS NPV : {npv}")
 
         results = qla.qlAddinCalculate(ois_swap)
 
         pprint(results, indent=4, sort_dicts=False)
-
-        forward_start = [
-            '0D', '1M', '3M', '6M', '1Y', '3Y', '5Y',
-            '7Y', '10Y', '15Y', '20Y', '25Y', '30Y'
-        ]
-
-        swap_tenor = ['1Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y', '25Y', '30Y']
-
-        # Store results: rates[start][tenor]
-        rates = {}
-
-        for start in forward_start:
-            rates[start] = {}
-
-            for tenor in swap_tenor:
-                ticker = start + "x" + tenor
-
-                ois_swap = qla.qlMakeOIS(
-                    ObjectId=ticker,
-                    SettlDays=2,
-                    SwapTenor=tenor,
-                    OvernightIndex=sofr_index_with_curve,
-                    FixedRate=0.000001,
-                    ForwardStart=start,
-                    FixDayCounter="Act/Act",
-                    Spread=0.0,
-                    PaymentLag=0,
-                    Permanent=False,
-                    Trigger=False,
-                    Overwrite=False
-                )
-
-                qla.qlInstrumentSetPricingEngine(ois_swap, engine, False)
-
-                results = qla.qlAddinCalculate(ois_swap)
-                rates[start][tenor] = results['results']['fairRate']
-
-        # Print table
-        column_width = 10
-
-        header = f"{'Forward':>{column_width}}"
-        for tenor in swap_tenor:
-            header += f"{tenor:>{column_width}}"
-
-        print(header)
-        print("-" * len(header))
-
-        for start in forward_start:
-            row = f"{start:>{column_width}}"
-            for tenor in swap_tenor:
-                # Display as percentage
-                rate = rates[start][tenor] * 100
-                row += f"{rate:>{column_width}.4f}"
-            print(row)
 
     except Exception as e:
         print("Error:", e)
