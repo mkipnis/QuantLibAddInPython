@@ -7,11 +7,13 @@
 #include <handlers/generic_handler.hpp>
 #include <handlers/ois_handler.hpp>
 #include <handlers/bond_handler.hpp>
+#include <handlers/vanilla_option_handler.hpp>
 #include <oh/repository.hpp>
 
 #include <qlo/qladdin.hpp>
 #include <qlo/overnightindexedswap.hpp>
 #include <qlo/bonds.hpp>
+#include <qlo/vanillaoption.hpp>
 
 #include <mutex>
 
@@ -28,6 +30,7 @@ void registerDefaultHandlers()
         registerInstrumentHandler<QuantLibAddin::Instrument>( handleGenericInstrument );
         registerInstrumentHandler<QuantLibAddin::OvernightIndexedSwap>( handleOIS );
         registerInstrumentHandler<QuantLibAddin::Bond>( handleBond );
+        registerInstrumentHandler<QuantLibAddin::VanillaOption>( handleVanillaOption );
     });
 }
 
